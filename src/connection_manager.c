@@ -101,9 +101,10 @@ int select_folder(ConnectionManager* cm, const char* folder) {
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
 
+
     // Send select folder command
-    //TODO: if no folder is specified, select the inbox
-    sprintf(buffer, "%s SELECT %s\r\n", tag, folder);
+    // If folder is NULL(init value), select INBOX
+    sprintf(buffer, "%s SELECT %s\r\n", tag, folder ? folder : "INBOX");
     if (send(cm->socket_fd, buffer, strlen(buffer), 0) < 0) {
         perror("Error sending select folder command");
         return -1;
