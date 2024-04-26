@@ -3,6 +3,8 @@
 #include <string.h>
 
 #define TABLE_SIZE 1000
+#define MOD 1610612741LL
+#define PRIME 805306457LL
 
 typedef struct node {
     char key[256];
@@ -15,9 +17,9 @@ struct set {
 };
 
 static unsigned int hash(const char* key) {
-    unsigned int hash = 0;
+    unsigned long long hash = 0;
     while (*key) {
-        hash = (hash << 5) + *key++;
+        hash = (hash * PRIME + *key++) % MOD;
     }
     return hash % TABLE_SIZE;
 }
