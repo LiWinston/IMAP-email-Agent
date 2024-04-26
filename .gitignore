@@ -1,5 +1,7 @@
-*.{exe,out,app,jar,o,obj,so,dll,dylib}
-**/*.{exe,out,app,jar,o,obj,so,dll,dylib}
+**/*.exe
+**/*.out
+**/*.o
+
 
 /.idea
 /.vscode
