@@ -7,3 +7,4 @@
 /.vscode
 /cmake-build-debug
 Specification.txt
+CMakeLists.txt
