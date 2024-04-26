@@ -42,7 +42,6 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
     cm->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (cm->socket_fd < 0) {
         perror("Error opening socket");
-        // return -1;
         exit(2);
     }
 
@@ -65,6 +64,12 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
 
     return 0;
 }
+
+void login_failure() {
+    printf("Login failure\n");
+    exit(3);
+}
+
 int login(ConnectionManager* cm, const char* username, const char* password) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
@@ -74,19 +79,18 @@ int login(ConnectionManager* cm, const char* username, const char* password) {
     sprintf(buffer, "%s LOGIN %s %s\r\n", tag, username, password);
     if (send(cm->socket_fd, buffer, strlen(buffer), 0) < 0) {
         perror("Error sending login command");
-        return -1;
+        login_failure();
     }
 
     // Receive response
     if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
         perror("Error receiving login response");
-        return -1;
+        login_failure();
     }
 
     // Check response
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
-        printf("Login failure\n");
-        return -1;
+        login_failure();
     }
 
     return 0;
@@ -97,8 +101,10 @@ int select_folder(ConnectionManager* cm, const char* folder) {
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
 
+
     // Send select folder command
-    sprintf(buffer, "%s SELECT %s\r\n", tag, folder);
+    // If folder is NULL(init value), select INBOX
+    sprintf(buffer, "%s SELECT %s\r\n", tag, folder ? folder : "INBOX");
     if (send(cm->socket_fd, buffer, strlen(buffer), 0) < 0) {
         perror("Error sending select folder command");
         return -1;

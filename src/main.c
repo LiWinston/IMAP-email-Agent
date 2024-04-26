@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "PriorityQueue.h"
 #include <ctype.h>
 
 typedef struct {
@@ -105,6 +105,14 @@ int compareNumDesc(const void* a, const void* b) {
 }
 
 
+int intCompare(const void *a, const void *b) {
+    int intA = *(int*)a;
+    int intB = *(int*)b;
+    if (intA == intB) return 0;
+    return (intA < intB) ? -1 : 1;
+}
+
+
 int main(int argc, char *argv[]) {
     Arguments args = parse_arguments(argc, argv);
 
@@ -159,6 +167,47 @@ int main(int argc, char *argv[]) {
 
     // 销毁优先队列
     priority_queue_destroy(pq);
+
+
+    //
+    // 初始化一个整数类型的优先队列
+    PriorityQueue pq;
+    initPriorityQueue(&pq);
+
+    // 添加一些元素
+    int values[] = {10, 5, 15, 3, 7};
+    for (int i = 0; i < sizeof(values) / sizeof(values[0]); ++i) {
+        pushPriorityQueue(&pq, &values[i]);
+    }
+
+    // 打印当前队列中的元素
+    printf("Current elements in the priority queue:\n");
+    for (size_t i = 0; i < pq.size; ++i) {
+        printf("%d ", *((int*)pq.array[i]));
+    }
+    printf("\n");
+
+    // 将队列排序
+    sortPriorityQueue(&pq, intCompare);
+
+    // 打印排序后的队列元素
+    printf("Elements in the priority queue after sorting:\n");
+    for (size_t i = 0; i < pq.size; ++i) {
+        printf("%d ", *((int*)pq.array[i]));
+    }
+    printf("\n");
+
+    // // 弹出并打印队列中的元素，直到队列为空
+    // printf("Elements popped from the priority queue:\n");
+    // while (pq.size > 0) {
+    //     int* poppedValue = (int*)popPriorityQueue(&pq);
+    //     printf("%d ", *poppedValue);
+    // }
+    // printf("\n");
+
+    // 释放优先队列的内存空间
+    freePriorityQueue(&pq);
+
 
     return 0;
 }
