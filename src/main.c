@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "tag_manager.h"
 
 typedef struct {
     char *username;
@@ -63,6 +64,32 @@ int main(int argc, char *argv[]) {
     printf("Server Name: %s\n", args.server_name);
     printf("TLS flag: %d\n", args.tls_flag);
 
+    TagManager* tm = tag_manager_create();
+    printf("get a unused tag: %s\n", generate_tag(tm));
+
+    Set *set = set_create();
+
+    // Insert some elements
+    set_insert(set, "apple");
+    set_insert(set, "banana");
+    set_insert(set, "orange");
+
+    // Check if elements are in the set
+    printf("Is 'apple' in the set? %s\n", set_contains(set, "apple") ? "Yes" : "No");
+    printf("Is 'grape' in the set? %s\n", set_contains(set, "grape") ? "Yes" : "No");
+
+    // Remove an element
+    printf("Removing 'apple' from the set...\n");
+    set_remove(set, "apple");
+
+    // Check if 'apple' is still in the set
+    printf("Is 'apple' in the set after removal? %s\n", set_contains(set, "apple") ? "Yes" : "No");
+
+    // Get the size of the set
+    printf("Size of the set: %d\n", set_size(set));
+
+    // Clean up
+    set_destroy(set);
 
     return 0;
 }
