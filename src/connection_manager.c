@@ -38,14 +38,14 @@ void connection_manager_destroy(ConnectionManager* cm) {
 int connect_to_server(ConnectionManager* cm, const char* server_name, int port) {
     // Create socket
     struct sockaddr_in server_addr;
-    struct hostent* server;
     cm->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (cm->socket_fd < 0) {
         perror("Error opening socket");
-        return -1;
+        // return -1;
+        _exit(2);
     }
 
-    server = gethostbyname(server_name);
+    struct hostent *server = gethostbyname(server_name);
     if (server == NULL) {
         fprintf(stderr, "Error, no such host\n");
         return -1;
@@ -113,7 +113,7 @@ int select_folder(ConnectionManager* cm, const char* folder) {
     // Check response
     if (strstr(buffer, "OK") == NULL) {
         printf("Folder not found\n");
-        return -1;
+        _exit(3);
     }
 
     return 0;
