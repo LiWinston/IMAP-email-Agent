@@ -65,7 +65,6 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
 
     return 0;
 }
-char *strstr_case_insensitive(const char *haystack, const char *needle);
 int login(ConnectionManager* cm, const char* username, const char* password) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
@@ -119,6 +118,44 @@ int select_folder(ConnectionManager* cm, const char* folder) {
 
     return 0;
 }
+
+int retrieve_email(const ConnectionManager * cm, const char* messageNum) {
+    char buffer[MAX_BUFFER_SIZE];
+    char tag[TAG_MAX_LEN];
+    sprintf(tag, "%s", generate_tag(cm->tag_manager));
+
+    // Construct FETCH command
+    char command[MAX_BUFFER_SIZE];
+    if (messageNum == NULL) {
+        sprintf(command, "%s FETCH * BODY.PEEK[]\r\n", tag);
+    } else {
+        sprintf(command, "%s FETCH %s BODY.PEEK[]\r\n", tag, messageNum);
+    }
+
+    // Send FETCH command
+    if (send(cm->socket_fd, command, strlen(command), 0) < 0) {
+        perror("Error sending FETCH command");
+        return -1;
+    }
+
+    // Receive response
+    if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
+        perror("Error receiving FETCH response");
+        return -1;
+    }
+
+    // Check response
+    if (strstr_case_insensitive(buffer, "OK") == NULL) {
+        printf("Failed to retrieve email\n");
+        _exit(3);
+    }
+
+    // Print raw email
+    printf("%s", buffer);
+
+    return 0;
+}
+
 
 void close_connection(ConnectionManager* cm) {
     if (cm->socket_fd != -1) {
