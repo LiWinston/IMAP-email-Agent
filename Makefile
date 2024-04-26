@@ -1,7 +1,7 @@
 EXE=fetchmail
 
 $(EXE): src/main.c
-	cc -Wall -o $(EXE) $<
+	gcc -Wall -o $(EXE) $<
 run: $(EXE)
 	./$(EXE)
 memcheck: $(EXE)
