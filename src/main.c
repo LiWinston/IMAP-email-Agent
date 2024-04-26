@@ -74,9 +74,6 @@ int main(int argc, char *argv[]) {
     printf("Server Name: %s\n", args.server_name);
     printf("TLS flag: %d\n", args.tls_flag);
 
-    TagManager *tm = tag_manager_create();
-	//test connection
 
-    tag_manager_destroy(tm);
     return 0;
 }
