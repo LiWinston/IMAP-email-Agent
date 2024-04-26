@@ -3,6 +3,7 @@
 #include "connection_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <string.h>
 #include <netdb.h>
@@ -64,7 +65,7 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
 
     return 0;
 }
-
+char *strstr_case_insensitive(const char *haystack, const char *needle);
 int login(ConnectionManager* cm, const char* username, const char* password) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
@@ -84,7 +85,7 @@ int login(ConnectionManager* cm, const char* username, const char* password) {
     }
 
     // Check response
-    if (strstr(buffer, "OK") == NULL) {
+    if (strstr_case_insensitive(buffer, "OK") == NULL) {
         printf("Login failure\n");
         return -1;
     }
@@ -124,4 +125,21 @@ void close_connection(ConnectionManager* cm) {
         close(cm->socket_fd);
         cm->socket_fd = -1;
     }
+}
+
+char *strstr_case_insensitive(const char *haystack, const char *needle) {
+    // Case-insensitive version of strstr
+    size_t needle_len = strlen(needle);
+    if (needle_len == 0) {
+        return (char *)haystack;
+    }
+
+    while (*haystack) {
+        if (strncasecmp(haystack, needle, needle_len) == 0) {
+            return (char *)haystack;
+        }
+        haystack++;
+    }
+
+    return NULL;
 }

@@ -1,7 +1,9 @@
+#include "tag_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "tag_manager.h"
+
+#include <ctype.h>
 
 typedef struct {
     char *username;
@@ -26,22 +28,22 @@ Arguments parse_arguments(int argc, char *argv[]) {
     }
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-u") == 0) {
+        if (strcasecmp(argv[i], "-u") == 0) {
             args.username = argv[++i];
-        } else if (strcmp(argv[i], "-p") == 0) {
+        } else if (strcasecmp(argv[i], "-p") == 0) {
             args.password = argv[++i];
-        } else if (strcmp(argv[i], "-f") == 0) {
+        } else if (strcasecmp(argv[i], "-f") == 0) {
             args.folder = argv[++i];
-        } else if (strcmp(argv[i], "-n") == 0) {
+        } else if (strcasecmp(argv[i], "-n") == 0) {
             args.messageNum = argv[++i];
-        } else if (strcmp(argv[i], "-t") == 0) {
+        } else if (strcasecmp(argv[i], "-t") == 0) {
             args.tls_flag = 1;
         } else {
             if (args.command == NULL) {
-                if (strcmp(argv[i], "retrieve") != 0 &&
-                    strcmp(argv[i], "parse") != 0 &&
-                    strcmp(argv[i], "mime") != 0 &&
-                    strcmp(argv[i], "list") != 0) {
+                if (strcasecmp(argv[i], "retrieve") != 0 &&
+                    strcasecmp(argv[i], "parse") != 0 &&
+                    strcasecmp(argv[i], "mime") != 0 &&
+                    strcasecmp(argv[i], "list") != 0) {
                     fprintf(stderr,"Invalid command: %s\n", argv[i]);
                     print_usage();
                     exit(1);
@@ -75,6 +77,6 @@ int main(int argc, char *argv[]) {
     TagManager *tm = tag_manager_create();
 	//test connection
 
-
+    tag_manager_destroy(tm);
     return 0;
 }
