@@ -1,4 +1,7 @@
+#include "connection_manager.h"
 #include "tag_manager.h"
+
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -62,6 +65,28 @@ Arguments parse_arguments(int argc, char *argv[]) {
 
     return args;
 }
+void test_strstr_case_insensitive() {
+    const char *haystack = "Hello, World!";
+    const char *needle1 = "wor";
+    const char *needle2 = "WO";
+    const char *needle3 = "abc";
+
+    // 测试用例1: 匹配情况
+    char *result1 = strstr_case_insensitive(haystack, needle1);
+    assert(result1 != NULL);
+    printf("'%s' 匹配 '%s'，匹配结果：%s\n", haystack, needle1, result1);
+
+    // 测试用例2: 大小写不同，但匹配情况
+    char *result2 = strstr_case_insensitive(haystack, needle2);
+    assert(result2 != NULL);
+    printf("'%s' 匹配 '%s'，匹配结果：%s\n", haystack, needle2, result2);
+
+    // 测试用例3: 不匹配情况
+    char *result3 = strstr_case_insensitive(haystack, needle3);
+    assert(result3 == NULL);
+    printf("'%s' 不匹配 '%s'\n", haystack, needle3);
+}
+
 
 int main(int argc, char *argv[]) {
     Arguments args = parse_arguments(argc, argv);
@@ -77,6 +102,8 @@ int main(int argc, char *argv[]) {
     TagManager *tm = tag_manager_create();
 	//test connection
 
+    test_strstr_case_insensitive();
     tag_manager_destroy(tm);
     return 0;
 }
+
