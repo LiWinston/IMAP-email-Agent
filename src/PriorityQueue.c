@@ -1,101 +1,87 @@
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
 #include "PriorityQueue.h"
-#define PAGE_NUMBER 512
 
-//Refactored from heap.c in project 1, originally implemented by Rong Wang
-//add generic support, use void* to store data, use function pointer to compare data
-void initPriorityQueue(PriorityQueue *pq) {
-  pq->sorted = false;
-  pq->size = 0;
-  pq->cap = 16;
-  pq->array = malloc(pq->cap * sizeof(void*));
-}
 
-void freePriorityQueue(PriorityQueue *pq) {
-  pq->size = pq->cap = 0;
-  free(pq->array);
-}
+PriorityQueue * priority_queue_create(size_t capacity, int (*cmp)(const void*, const void*)) {
+    PriorityQueue* pq = (PriorityQueue*)malloc(sizeof(PriorityQueue));
+    if (!pq) return NULL;
 
-void pushPriorityQueue(PriorityQueue *pq, void* val) {
-  pq->sorted = false;
-
-  if (pq->size == pq->cap) {
-    pq->cap += pq->cap;
-    pq->array = realloc(pq->array, sizeof(void*) * pq->cap);
-  }
-
-  pq->array[pq->size] = val;
-  for (int cur = pq->size; cur; cur = (cur - 1) / 2) {
-    if (pq->array[(cur - 1) / 2] < val)
-      break;
-    pq->array[cur] = pq->array[(cur - 1) / 2];
-    pq->array[(cur - 1) / 2] = val;
-  }
-
-  pq->size++;
-}
-
-void* popPriorityQueue(PriorityQueue *pq) {
-  void* ans = pq->array[0];
-  pq->sorted = false;
-
-  pq->size--;
-  pq->array[0] = pq->array[pq->size];
-  // replace last element with inf
-  pq->array[pq->size] = NULL;
-  int cur = 0;
-  while (true) {
-    int l = cur + cur + 1, r = l + 1;
-    if (l >= pq->size)
-      break;
-    if (pq->array[l] < pq->array[r] && pq->array[l] < pq->array[cur]) {
-      void* temp = pq->array[l];
-      pq->array[l] = pq->array[cur];
-      pq->array[cur] = temp;
-      cur = l;
-    } else if (pq->array[r] < pq->array[cur]) {
-      void* temp = pq->array[r];
-      pq->array[r] = pq->array[cur];
-      pq->array[cur] = temp;
-      cur = r;
-    } else {
-      break;
+    pq->data = (void**)malloc(capacity * sizeof(void*));
+    if (!pq->data) {
+        free(pq);
+        return NULL;
     }
-  }
-  return ans;
+
+    pq->size = 0;
+    pq->capacity = capacity;
+    pq->cmp = cmp;
+
+    return pq;
 }
 
-void h2hPriorityQueue(PriorityQueue *source, PriorityQueue *dest, int amount, PriorityQueue *record) {
-  if (amount == source->size) {
-    while (source->size > 0) {
-      source->size--;
-      if (record != NULL)
-        pushPriorityQueue(record, source->array[source->size]);
-      pushPriorityQueue(dest, source->array[source->size]);
-    }
-  } else {
-    for (int _ = 0; _ < amount; _++) {
-      void* top = popPriorityQueue(source);
-      if (record != NULL)
-        pushPriorityQueue(record, top);
-      pushPriorityQueue(dest, top);
-    }
-    if (dest->size == amount)
-      dest->sorted = true;
-  }
+void priority_queue_destroy(PriorityQueue* pq) {
+    if (!pq) return;
+
+    free(pq->data);
+    free(pq);
 }
 
-void sortPriorityQueue(PriorityQueue *pq, int (*cmp)(const void*, const void*)){
-    if (pq->sorted)
-        return;
-    void* tmp[PAGE_NUMBER];
-    int size = pq->size;
-    for (int i = 0; i < size; i++) {
-        tmp[i] = popPriorityQueue(pq);
+void priority_queue_push(PriorityQueue* pq, void* item) {
+    if (pq->size == pq->capacity) {
+        // Resize the array if full
+        pq->capacity *= 2;
+        pq->data = (void**)realloc(pq->data, pq->capacity * sizeof(void*));
+        if (!pq->data) {
+            // Memory allocation failed
+            return;
+        }
     }
-    memcpy(pq->array, tmp, sizeof(void*) * size);
-    pq->size = size;
-    pq->sorted = true;
+
+    // Add the new item to the end
+    pq->data[pq->size++] = item;
+
+    // Perform up-heap (percolate-up) operation to maintain heap property
+    size_t i = pq->size - 1;
+    while (i > 0 && pq->cmp(pq->data[i], pq->data[(i - 1) / 2]) < 0) {
+        void* temp = pq->data[i];
+        pq->data[i] = pq->data[(i - 1) / 2];
+        pq->data[(i - 1) / 2] = temp;
+        i = (i - 1) / 2;
+    }
+}
+
+void* priority_queue_pop(PriorityQueue* pq) {
+    if (pq->size == 0) return NULL;
+
+    // Remove the root item
+    void* item = pq->data[0];
+
+    // Move the last item to the root
+    pq->data[0] = pq->data[--pq->size];
+
+    // Perform down-heap (percolate-down) operation to maintain heap property
+    size_t i = 0;
+    while (2 * i + 1 < pq->size) {
+        size_t left_child = 2 * i + 1;
+        size_t right_child = 2 * i + 2;
+        size_t min_child = left_child;
+
+        if (right_child < pq->size && pq->cmp(pq->data[right_child], pq->data[left_child]) < 0) {
+            min_child = right_child;
+        }
+
+        if (pq->cmp(pq->data[i], pq->data[min_child]) > 0) {
+            void* temp = pq->data[i];
+            pq->data[i] = pq->data[min_child];
+            pq->data[min_child] = temp;
+            i = min_child;
+        } else {
+            break;
+        }
+    }
+
+    return item;
+}
+
+bool priority_queue_empty(PriorityQueue* pq) {
+    return pq->size == 0;
 }
