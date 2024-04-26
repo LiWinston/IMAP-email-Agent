@@ -24,7 +24,7 @@ src/connection_manager.o: src/connection_manager.c src/connection_manager.h
 
 
 run: $(EXE)
-	./$(EXE) -u myusername -p mypassword -f myfolder -n 123 -t retrieve11 example.com
+	./$(EXE) -u myusername -p mypassword -f myfolder -n 123 -t retrieve example.com
 
 memcheck: $(EXE)
 	$(MEMCHECK_CMD) ./$(EXE)

@@ -43,7 +43,7 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
     if (cm->socket_fd < 0) {
         perror("Error opening socket");
         // return -1;
-        _exit(2);
+        exit(2);
     }
 
     struct hostent *server = gethostbyname(server_name);
@@ -113,7 +113,7 @@ int select_folder(ConnectionManager* cm, const char* folder) {
     // Check response
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
         printf("Folder not found\n");
-        _exit(3);
+        exit(3);
     }
 
     return 0;
@@ -147,13 +147,12 @@ int retrieve_email(const ConnectionManager * cm, const char* messageNum) {
     // Check response
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
         printf("Failed to retrieve email\n");
-        _exit(3);
+        exit(3);
     }
 
     // Print raw email
     printf("%s", buffer);
-
-    return 0;
+    exit(0);
 }
 
 
