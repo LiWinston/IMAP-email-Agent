@@ -14,7 +14,7 @@ typedef struct {
 } Arguments;
 
 void print_usage() {
-    printf("Usage: fetchmail -u <username> -p <password> [-f <folder>] [-n <messageNum>] [-t] <command> <server_name>\n");
+    fprintf(stderr,"Usage: fetchmail -u <username> -p <password> [-f <folder>] [-n <messageNum>] [-t] <command> <server_name>\n");
 }
 
 Arguments parse_arguments(int argc, char *argv[]) {
@@ -38,6 +38,14 @@ Arguments parse_arguments(int argc, char *argv[]) {
             args.tls_flag = 1;
         } else {
             if (args.command == NULL) {
+                if (strcmp(argv[i], "retrieve") != 0 &&
+                    strcmp(argv[i], "parse") != 0 &&
+                    strcmp(argv[i], "mime") != 0 &&
+                    strcmp(argv[i], "list") != 0) {
+                    fprintf(stderr,"Invalid command: %s\n", argv[i]);
+                    print_usage();
+                    exit(1);
+                }
                 args.command = argv[i];
             } else {
                 args.server_name = argv[i];

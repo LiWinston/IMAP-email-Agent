@@ -1,10 +1,10 @@
 EXE=fetchmail
 EXE_SUFFIX=.exe
-RM = rm -f
 ifeq ($(OS),Windows_NT)
     RM = del
     MEMCHECK_CMD = wsl valgrind --leak-check=full
 else
+	Rm = rm -f
     MEMCHECK_CMD = valgrind
 endif
 
@@ -24,10 +24,9 @@ src/connection_manager.o: src/connection_manager.c src/connection_manager.h
 
 
 run: $(EXE)
-	./$(EXE) -u myusername -p mypassword -f myfolder -n 123 -t retrieve example.com
+	./$(EXE) -u myusername -p mypassword -f myfolder -n 123 -t retrieve11 example.com
 
 memcheck: $(EXE)
 	$(MEMCHECK_CMD) ./$(EXE)
 clean:
-	@if exist src\*.o $(RM) src\*.o
-	@if exist $(EXE)$(EXE_SUFFIX) $(RM) $(EXE)$(EXE_SUFFIX)
+	$(RM) $(EXE) $(EXE)$(EXE_SUFFIX) src/*.o
