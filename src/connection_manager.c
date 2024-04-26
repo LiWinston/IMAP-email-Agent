@@ -112,7 +112,7 @@ int select_folder(ConnectionManager* cm, const char* folder) {
     }
 
     // Check response
-    if (strstr(buffer, "OK") == NULL) {
+    if (strstr_case_insensitive(buffer, "OK") == NULL) {
         printf("Folder not found\n");
         _exit(3);
     }
