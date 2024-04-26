@@ -1,6 +1,6 @@
 EXE=fetchmail
 
-$(EXE): main.c
+$(EXE): src/main.c
 	cc -Wall -o $(EXE) $<
 run: $(EXE)
 	./$(EXE)
