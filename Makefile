@@ -24,6 +24,9 @@ src/connection_manager.o: src/connection_manager.c src/connection_manager.h
 src/PriorityQueue.o: src/PriorityQueue.c src/PriorityQueue.h
 	gcc -Wall -c -o $@ $<
 
+src/Email.o: src/Email.c src/Email.h
+	gcc -Wall -c -o $@ $<
+
 
 run: $(EXE)
 	./$(EXE) -u myusername -p mypassword -f myfolder -n 123 -t retrieve example.com
