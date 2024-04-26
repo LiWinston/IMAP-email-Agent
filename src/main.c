@@ -85,6 +85,23 @@ void test_strstr_case_insensitive() {
     char *result3 = strstr_case_insensitive(haystack, needle3);
     assert(result3 == NULL);
     printf("'%s' 不匹配 '%s'\n", haystack, needle3);
+typedef struct {
+    int num;
+    char* str;
+} Item;
+
+// 比较函数，按照字符串长度递减顺序排序
+int compareStringLenDesc(const void* a, const void* b) {
+    const Item* itemA = (const Item*)a;
+    const Item* itemB = (const Item*)b;
+    return strlen(itemB->str) - strlen(itemA->str);
+}
+
+// 比较函数，按照数字大小递减顺序排序
+int compareNumDesc(const void* a, const void* b) {
+    const Item* itemA = (const Item*)a;
+    const Item* itemB = (const Item*)b;
+    return itemB->num - itemA->num;
 }
 
 
@@ -99,8 +116,50 @@ int main(int argc, char *argv[]) {
     printf("Server Name: %s\n", args.server_name);
     printf("TLS flag: %d\n", args.tls_flag);
 
+    PriorityQueue* pq = priority_queue_create(10, compareStringLenDesc);
 
     test_strstr_case_insensitive();
+    // 添加一些元素到优先队列中
+    Item* item1 = (Item*)malloc(sizeof(Item));
+    item1->num = 5;
+    item1->str = "Five";
+    priority_queue_push(pq, item1);
+
+    // 添加一些元素到优先队列中
+    Item* item11 = (Item*)malloc(sizeof(Item));
+    item11->num = 5;
+    item11->str = "Five";
+    priority_queue_push(pq, item11);
+
+    Item* item2 = (Item*)malloc(sizeof(Item));
+    item2->num = 10;
+    item2->str = "TenTen";
+    priority_queue_push(pq, item2);
+
+    Item* item3 = (Item*)malloc(sizeof(Item));
+    item3->num = 3;
+    item3->str = "ThreeThreeThree";
+    priority_queue_push(pq, item3);
+
+    // 更改比较函数为按照数字大小递减顺序排序
+    pq->cmp = compareNumDesc;
+
+    // 添加一个数字更大的元素到优先队列中
+    Item* item4 = (Item*)malloc(sizeof(Item));
+    item4->num = 20;
+    item4->str = "Twenty";
+    priority_queue_push(pq, item4);
+
+    // 从优先队列中弹出并打印元素，直到队列为空
+    while (!priority_queue_empty(pq)) {
+        Item* item = (Item*)priority_queue_pop(pq);
+        printf("num: %d, str: %s\n", item->num, item->str);
+        free(item);
+    }
+
+    // 销毁优先队列
+    priority_queue_destroy(pq);
+
     return 0;
 }
 
