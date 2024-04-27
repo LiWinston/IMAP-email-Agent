@@ -18,13 +18,16 @@ src/tag_manager.o: src/tag_manager.c src/tag_manager.h src/set.o
 src/set.o: src/set.c src/set.h
 	gcc -Wall -c -o $@ $<
 
-src/connection_manager.o: src/connection_manager.c src/connection_manager.h src/PriorityQueue.o src/Email.o
+src/connection_manager.o: src/connection_manager.c src/connection_manager.h src/PriorityQueue.o src/Email.o src/CBuffer.o
 	gcc -Wall -c -o $@ $<
 
 src/PriorityQueue.o: src/PriorityQueue.c src/PriorityQueue.h
 	gcc -Wall -c -o $@ $<
 
 src/Email.o: src/Email.c src/Email.h
+	gcc -Wall -c -o $@ $<
+
+src/CBuffer.o: src/CBuffer.c src/CBuffer.h
 	gcc -Wall -c -o $@ $<
 
 
