@@ -29,7 +29,7 @@ src/Email.o: src/Email.c src/Email.h
 
 
 run: $(EXE)
-	./$(EXE) -u test@comp30023 -p pass -f Test -n 2 -t retrieve unimelb-comp30023-2024.cloud.edu.au
+	./$(EXE) -u test@comp30023 -p pass -f Test -n 1 retrieve unimelb-comp30023-2024.cloud.edu.au
 
 memcheck: $(EXE)
 	$(MEMCHECK_CMD) ./$(EXE)
