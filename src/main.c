@@ -106,10 +106,8 @@ int main(int argc, char *argv[]) {
     if (strcasecmp(args.command, "retrieve") == 0) {
         // Implement retrieve command
         if (args.messageNum == NULL) {
-            fprintf(stderr,"Message number not specified\n");
-            print_usage();
-            connection_manager_destroy(cm);
-            return 1;
+            fprintf(stderr,"Message number not specified, fetching the last added one\n");
+            //TODO: retrieve the last added message in connection_manager
         }
         retrieve_ShowMessage(cm, args.messageNum);
     } else if (strcasecmp(args.command, "parse") == 0) {

@@ -144,7 +144,9 @@ int select_folder(const ConnectionManager * cm, const char* folder) {
         printf("Folder not found\n");
         exit(3);
     }
-
+#ifdef DEBUG
+    printf("Folder selected\n");
+#endif
     return 0;
 }
 

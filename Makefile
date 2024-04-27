@@ -29,7 +29,22 @@ src/Email.o: src/Email.c src/Email.h
 
 
 run: $(EXE)
-	./$(EXE) -u test@comp30023 -p pass -f Test -n 1 retrieve unimelb-comp30023-2024.cloud.edu.au
+	@echo "=============================="
+	@echo "Running first command"
+	./$(EXE) -u test@comp30023 -p pass -f Test retrieve unimelb-comp30023-2024.cloud.edu.au
+	@echo "=============================="
+	@echo "Running second command"
+	./$(EXE) -u test@comp30023 -p pass -f Test retrieve unimelb-comp30023-2024.cloud.edu.au -n 1
+	@echo "=============================="
+	@echo "Running third command"
+	./$(EXE) -u test@comp30023 -p pass -f Test retrieve unimelb-comp30023-2024.cloud.edu.au -n -1
+	@echo "=============================="
+	@echo "Running fourth command"
+	./$(EXE) retrieve unimelb-comp30023-2024.cloud.edu.au -n 1 -p pass     -u test@comp30023  -f Test
+	@echo "=============================="
+	@echo "Running fifth command"
+	./$(EXE) -u test@comp30023 -p pass -f Test list unimelb-comp30023-2024.cloud.edu.au -n 1 -d
+	@echo "=============================="
 
 memcheck: $(EXE)
 	$(MEMCHECK_CMD) ./$(EXE)
