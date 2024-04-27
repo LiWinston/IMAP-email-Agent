@@ -6,7 +6,7 @@
 #include "PriorityQueue.h"
 #include "tag_manager.h"
 
-#define MAX_BUFFER_SIZE 1024
+#define MAX_BUFFER_SIZE 65535
 
 typedef struct {
     int socket_fd;

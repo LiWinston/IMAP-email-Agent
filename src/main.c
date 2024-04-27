@@ -1,9 +1,12 @@
+#include "PriorityQueue.h"
+#include "connection_manager.h"
 #include "tag_manager.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "PriorityQueue.h"
+
 #include <ctype.h>
+#define DEBUG
 
 typedef struct {
     char *username;
@@ -63,80 +66,60 @@ Arguments parse_arguments(int argc, char *argv[]) {
     return args;
 }
 
-
-
-
-typedef struct {
-    int num;
-    char* str;
-} Item;
-
-// 比较函数，按照字符串长度递减顺序排序
-int compareStringLenDesc(const void* a, const void* b) {
-    const Item* itemA = (const Item*)a;
-    const Item* itemB = (const Item*)b;
-    return strlen(itemB->str) - strlen(itemA->str);
-}
-
-// 比较函数，按照数字大小递减顺序排序
-int compareNumDesc(const void* a, const void* b) {
-    const Item* itemA = (const Item*)a;
-    const Item* itemB = (const Item*)b;
-    return itemB->num - itemA->num;
-}
-
-
-int intCompare(const void *a, const void *b) {
-    int intA = *(int*)a;
-    int intB = *(int*)b;
-    if (intA == intB) return 0;
-    return (intA < intB) ? -1 : 1;
-}
-
-
 int main(int argc, char *argv[]) {
     Arguments args = parse_arguments(argc, argv);
 
-    printf("Username: %s\n", args.username);
-    printf("Password: %s\n", args.password);
-    printf("Folder: %s\n", args.folder != NULL ? args.folder : "(not specified)");
-    printf("MessageNum: %s\n", args.messageNum != NULL ? args.messageNum : "(not specified)");
-    printf("Command: %s\n", args.command);
-    printf("Server Name: %s\n", args.server_name);
-    printf("TLS flag: %d\n", args.tls_flag);
+    // printf("Username: %s\n", args.username);
+    // printf("Password: %s\n", args.password);
+    // printf("Folder: %s\n", args.folder != NULL ? args.folder : "(not specified)");
+    // printf("MessageNum: %s\n", args.messageNum != NULL ? args.messageNum : "(not specified)");
+    // printf("Command: %s\n", args.command);
+    // printf("Server Name: %s\n", args.server_name);
+    // printf("TLS flag: %d\n", args.tls_flag);
 
-
-    PriorityQueue* pq = priority_queue_create(10, compareStringLenDesc);
-
-    // 添加一些元素到优先队列中
-    Item* item1 = (Item*)malloc(sizeof(Item));
-    item1->num = 5;
-    item1->str = "Fiverrrrrrrrrrrrrrrr";
-    priority_queue_push(pq, item1);
-
-    Item* item2 = (Item*)malloc(sizeof(Item));
-    item2->num = 10;
-    item2->str = "TenTenn";
-    priority_queue_push(pq, item2);
-
-    Item* item3 = (Item*)malloc(sizeof(Item));
-    item3->num = 3;
-    item3->str = "ThreeThreeThree";
-    priority_queue_push(pq, item3);
-
-    Item* item5 = (Item*)malloc(sizeof(Item));
-        item5->num = 7;
-    item5 -> str = "Seven";
-        priority_queue_push(pq, item5);
-
-    while (!priority_queue_empty(pq)) {
-        Item* item = (Item*)priority_queue_pop(pq);
-        printf("num: %d, str: %s\n", item->num, item->str);
-        free(item);
+    // Connect to the IMAP server
+    ConnectionManager* cm = connection_manager_create();
+    if (!cm) {
+        perror("Failed to create connection manager\n");
+        return 1;
     }
 
-    // 更改比较函数为按照数字大小递减顺序排序
-    pq->cmp = compareNumDesc;
+    // Connect to the server
+    if (connect_to_server(cm, args.server_name, args.tls_flag ? 993 : 143) != 0) {
+        perror("Failed to connect to server\n");
+        connection_manager_destroy(cm);
+        return 1;
+    }
+#ifdef DEBUG
+    printf("Connected to server,\n fd = %i\n", cm->socket_fd);
+#endif
+
+    // Login to the server
+    if (login(cm, args.username, args.password) != 0) {
+        perror("Login failed\n");
+        connection_manager_destroy(cm);
+        return 1;
+    }
+
+    // Issue the specified command
+    if (strcasecmp(args.command, "retrieve") == 0) {
+        // Implement retrieve command
+    } else if (strcasecmp(args.command, "parse") == 0) {
+        // Implement parse command
+    } else if (strcasecmp(args.command, "mime") == 0) {
+        // Implement mime command
+    } else if (strcasecmp(args.command, "list") == 0) {
+        // Implement list command
+    } else {
+        fprintf(stderr,"Invalid command: %s\n", args.command);
+        print_usage();
+        connection_manager_destroy(cm);
+        return 1;
+    }
+
+    // Close the connection and clean up
+    close_connection(cm);
+    connection_manager_destroy(cm);
 
     return 0;
 }

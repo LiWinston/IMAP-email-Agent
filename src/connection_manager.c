@@ -14,6 +14,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#ifdef DEBUG
+#define DEBUG
+#endif
+
+#define DEBUG
+
 ConnectionManager* connection_manager_create() {
     ConnectionManager* cm = (ConnectionManager*)malloc(sizeof(ConnectionManager));
     if (!cm) return NULL;
@@ -43,6 +49,7 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
     // Create socket
     struct sockaddr_in server_addr;
     cm->socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+
     if (cm->socket_fd < 0) {
         perror("Error opening socket");
         exit(2);
@@ -59,6 +66,13 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
     bcopy((char*)server->h_addr_list[0], (char*)&server_addr.sin_addr.s_addr, server->h_length);
     server_addr.sin_port = htons(port);
 
+#ifdef DEBUG
+    printf("variables in connect_to_server:"
+           " server_addr.sin_family: %d, server_addr.sin_port: %d\n",
+           server_addr.sin_family, server_addr.sin_port);
+#endif
+
+
     // Connect to server
     if (connect(cm->socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         perror("Error connecting to server");
@@ -69,7 +83,7 @@ int connect_to_server(ConnectionManager* cm, const char* server_name, int port) 
 }
 
 void login_failure() {
-    printf("Login failure\n");
+    fprintf(stderr,"Login failure\n");
     exit(3);
 }
 
@@ -81,18 +95,23 @@ int login(const ConnectionManager* cm, const char* username, const char* passwor
     // Send login command
     sprintf(buffer, "%s LOGIN %s %s\r\n", tag, username, password);
     if (send(cm->socket_fd, buffer, strlen(buffer), 0) < 0) {
-        perror("Error sending login command");
+        fprintf(stderr,"Error sending login command");
         login_failure();
     }
 
+    memset(buffer, 0, MAX_BUFFER_SIZE);
     // Receive response
     if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
-        perror("Error receiving login response");
+        fprintf(stderr,"Error receiving login response");
         login_failure();
     }
 
     // Check response
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
+#ifdef DEBUG
+        printf("Response: %s\n", buffer);
+#endif
+        fprintf(stderr,"No ok in response\n");
         login_failure();
     }
 
