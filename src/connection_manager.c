@@ -128,7 +128,7 @@ int select_folder(const ConnectionManager * cm, const char* folder) {
     return 0;
 }
 
-int retrieve_message(const ConnectionManager * cm, const char* messageNum) {
+int retrieve_ShowMessage(const ConnectionManager * cm, const char* messageNum) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
@@ -155,7 +155,7 @@ int retrieve_message(const ConnectionManager * cm, const char* messageNum) {
 
     // Check response
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
-        printf("Failed to retrieve email\n");
+        printf(" Message not found\n");
         exit(3);
     }
 
@@ -164,7 +164,7 @@ int retrieve_message(const ConnectionManager * cm, const char* messageNum) {
     exit(0);
 }
 
-PriorityQueue* retrieve_email(const ConnectionManager * cm, const char* folder) {
+PriorityQueue* retrieve_ListSubjects(const ConnectionManager * cm, const char* folder) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));

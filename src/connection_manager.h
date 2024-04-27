@@ -18,8 +18,8 @@ void connection_manager_destroy(ConnectionManager* cm);
 int connect_to_server(ConnectionManager* cm, const char* server_name, int port);
 int login(const ConnectionManager* cm, const char* username, const char* password);
 int select_folder(const ConnectionManager * cm, const char* folder);
-int retrieve_message(const ConnectionManager* cm, const char* messageNum);
-PriorityQueue* retrieve_email(const ConnectionManager * cm, const char* folder);
+int retrieve_ShowMessage(const ConnectionManager* cm, const char* messageNum);
+PriorityQueue* retrieve_ListSubjects(const ConnectionManager * cm, const char* folder);
 void close_connection(ConnectionManager* cm);
 char *strstr_case_insensitive(const char *haystack, const char *needle);
 
