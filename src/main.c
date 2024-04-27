@@ -101,9 +101,17 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    select_folder(cm, args.folder);
     // Issue the specified command
     if (strcasecmp(args.command, "retrieve") == 0) {
         // Implement retrieve command
+        if (args.messageNum == NULL) {
+            fprintf(stderr,"Message number not specified\n");
+            print_usage();
+            connection_manager_destroy(cm);
+            return 1;
+        }
+        retrieve_ShowMessage(cm, args.messageNum);
     } else if (strcasecmp(args.command, "parse") == 0) {
         // Implement parse command
     } else if (strcasecmp(args.command, "mime") == 0) {
@@ -121,5 +129,6 @@ int main(int argc, char *argv[]) {
     close_connection(cm);
     connection_manager_destroy(cm);
 
+    printf("over!\n");
     return 0;
 }

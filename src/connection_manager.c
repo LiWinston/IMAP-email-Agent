@@ -132,6 +132,7 @@ int select_folder(const ConnectionManager * cm, const char* folder) {
         return -1;
     }
 
+    memset(buffer, 0, MAX_BUFFER_SIZE);
     // Receive response
     if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
         perror("Error receiving select folder response");
@@ -166,6 +167,7 @@ int retrieve_ShowMessage(const ConnectionManager * cm, const char* messageNum) {
         return -1;
     }
 
+    memset(buffer, 0, MAX_BUFFER_SIZE);
     // Receive response
     if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
         perror("Error receiving FETCH response");
@@ -174,6 +176,10 @@ int retrieve_ShowMessage(const ConnectionManager * cm, const char* messageNum) {
 
     // Check response
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
+#ifdef DEBUG
+        printf("DEBUG OUTPUT in retrieve_ShowMessage\n");
+        printf("Response: %s\n", buffer);
+#endif
         printf(" Message not found\n");
         exit(3);
     }
