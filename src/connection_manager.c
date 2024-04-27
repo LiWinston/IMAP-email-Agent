@@ -171,28 +171,28 @@ PriorityQueue* retrieve_ListSubjects(const ConnectionManager * cm, const char* f
 
     if (select_folder(cm, folder) < 0) {
         printf("Failed to select folder\n");
-        exit(3);
+        return NULL;
     }
 
     if (send(cm->socket_fd, "FETCH 1:* BODY[HEADER.FIELDS (SUBJECT)]", strlen("FETCH 1:* BODY[HEADER.FIELDS (SUBJECT)]"), 0) < 0) {
         perror("Error sending FETCH command");
-        exit(3);
+        return NULL;
     }
 
     if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
         perror("Error receiving FETCH response");
-        exit(3);
+        return NULL;
     }
 
     if (strstr_case_insensitive(buffer, "OK") == NULL) {
         printf("Failed to retrieve email\n");
-        exit(3);
+        return NULL;
     }
 
     PriorityQueue* pq = priority_queue_create(10, compareEmailByMessageNum);
     if (!pq) {
-        printf("Failed to create priority queue\n");
-        exit(3);
+        perror("Failed to create priority queue\n");
+        return NULL;
     }
 
     char* line = strtok(buffer, "\r\n");
@@ -201,23 +201,40 @@ PriorityQueue* retrieve_ListSubjects(const ConnectionManager * cm, const char* f
         if (seqNumStr != NULL) {
             int seqNum;
             if (sscanf(seqNumStr, "FETCH %d", &seqNum) != 1) {
-                printf("Failed to parse sequence number\n");
-                exit(3);
+                perror("Failed to parse sequence number\n");
+                return NULL;
             }
 
             // 读主题行实际内容
             char* subject = strstr_case_insensitive(line, "Subject:");
             if (subject != NULL) {
+                subject += strlen("Subject:");
+                // Trim
+                while (isspace(*subject)) {
+                    subject++;
+                }
+                char* end = subject + strlen(subject) - 1;
+                while (isspace(*end)) {
+                    end--;
+                }
+                end[1] = '\0'; // Terminate
+
                 Email* email = email_create(seqNum, subject);
                 if (!email) {
-                    printf("Failed to create email\n");
-                    exit(3);
+                    perror("Failed to create email\n");
+                    return NULL;
+                }
+                priority_queue_push(pq, email);
+            } else {
+                Email* email = email_create(seqNum, "<No subject>");
+                if (!email) {
+                    perror("Failed to create email\n");
+                    return NULL;
                 }
                 priority_queue_push(pq, email);
             }
         }
-
-        // 下一行
+        
         line = strtok(NULL, "\r\n");
     }
 
