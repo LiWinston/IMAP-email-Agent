@@ -234,11 +234,35 @@ PriorityQueue* retrieve_ListSubjects(const ConnectionManager * cm, const char* f
                 priority_queue_push(pq, email);
             }
         }
-        
+
         line = strtok(NULL, "\r\n");
     }
 
     return pq;
+}
+
+void list_emails(const ConnectionManager * cm, const char* folder) {
+    PriorityQueue* pq = retrieve_ListSubjects(cm, folder);
+    if (!pq) {
+        perror("Trace back to retrieve_ListSubjects()\n");
+        return;
+    }
+
+    // Check mailbox emptiness
+    if (priority_queue_empty(pq)) {
+        exit(0);
+    }
+
+    // Print subject lines sorted by message sequence number
+    while (!priority_queue_empty(pq)) {
+        Email* email = priority_queue_pop(pq);
+        printf("%d: ", email->message_num);
+        printf("%s\n", email->subject);
+        email_destroy(email);
+    }
+
+    // Destroy the priority queue
+    priority_queue_destroy(pq);
 }
 
 void close_connection(ConnectionManager* cm) {
