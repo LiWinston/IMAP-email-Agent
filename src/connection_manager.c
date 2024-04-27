@@ -3,7 +3,7 @@
 #include "connection_manager.h"
 #include "Email.h"
 #include "PriorityQueue.h"
-
+#include "CBuffer.h"
 #include <arpa/inet.h>
 #include <ctype.h>
 #include <netdb.h>
@@ -150,12 +150,14 @@ int select_folder(const ConnectionManager * cm, const char* folder) {
     return 0;
 }
 
-int retrieve_ShowMessage(const ConnectionManager * cm, const char* messageNum) {
-    char buffer[MAX_BUFFER_SIZE];
+int retrieve_ShowMessage(const ConnectionManager *cm, const char *messageNum) {
+    // Create a CBuffer to store the response
+    CBuffer *response_buffer = cb_init();
+
+    // Construct FETCH command
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
 
-    // Construct FETCH command
     char command[MAX_BUFFER_SIZE];
     if (messageNum == NULL) {
         sprintf(command, "%s FETCH * BODY.PEEK[]\r\n", tag);
@@ -166,29 +168,45 @@ int retrieve_ShowMessage(const ConnectionManager * cm, const char* messageNum) {
     // Send FETCH command
     if (send(cm->socket_fd, command, strlen(command), 0) < 0) {
         perror("Error sending FETCH command");
+        cb_destroy(response_buffer);
         return -1;
     }
 
-    memset(buffer, 0, MAX_BUFFER_SIZE);
-    // Receive response
-    if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
+    // Receive and buffer the response
+    char buffer[MAX_BUFFER_SIZE];
+    ssize_t bytes_received;
+    while ((bytes_received = recv(cm->socket_fd, buffer, 8000, 0)) > 0) {
+        printf("%s", buffer);
+        cb_write(response_buffer, buffer, bytes_received);
+    }
+
+    if (bytes_received < 0) {
         perror("Error receiving FETCH response");
+        cb_destroy(response_buffer);
         return -1;
     }
 
     // Check response
-    if (strstr_case_insensitive(buffer, "OK") == NULL) {
+    size_t response_size;
+    char *response_data = cb_read(response_buffer, &response_size);
+    if (strstr(response_data, "OK") == NULL) {
 #ifdef DEBUG
         printf("DEBUG OUTPUT in retrieve_ShowMessage\n");
-        printf("Response: %s\n", buffer);
+        printf("Response: %s\n", response_data);
 #endif
-        printf(" Message not found\n");
+        printf("Message not found\n");
+        free(response_data);
+        cb_destroy(response_buffer);
         exit(3);
     }
 
     // Print raw email
-    printf("%s", buffer);
-    exit(0);
+    printf("%s", response_data);
+
+    // Cleanup
+    free(response_data);
+    cb_destroy(response_buffer);
+    return 0;
 }
 
 PriorityQueue* retrieve_ListSubjects(const ConnectionManager * cm, const char* folder) {

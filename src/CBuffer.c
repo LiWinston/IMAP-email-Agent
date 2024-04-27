@@ -1,7 +1,8 @@
 #include "CBuffer.h"
 #include <string.h>
 
-#define DEFAULT_BUFFER_SIZE 1024
+#define DEFAULT_BUFFER_SIZE 32
+#define MAX_MEMORY_SIZE 64
 #define TEMP_FILE_PREFIX "cb_tempfile_"
 
 CBuffer *cb_init() {
@@ -100,13 +101,14 @@ char *cb_read(CBuffer *cb, size_t *size) {
 }
 
 void cb_write(CBuffer *cb, const char *data, size_t size) {
-    if (cb->size + size > cb->capacity) {
+    if (cb->size + size > MAX_MEMORY_SIZE) {
         if (!cb->tempfile) {
             char tempFileName[L_tmpnam];
             if (!tmpnam(tempFileName)) {
                 perror("Failed to generate temporary file name");
                 exit(EXIT_FAILURE);
             }
+            printf("文件名 %s\n", tempFileName);
             cb->tempfile = fopen(tempFileName, "wb+");
             if (!cb->tempfile) {
                 perror("Failed to create temporary file");
@@ -119,10 +121,18 @@ void cb_write(CBuffer *cb, const char *data, size_t size) {
                 cb->capacity = 0;
             }
         }
+        
         // 将文件指针移到文件末尾
-        fseek(cb->tempfile, 0, SEEK_END);
+        if (fseek(cb->tempfile, 0, SEEK_END) != 0) {
+            perror("Failed to move file pointer to end of file");
+            exit(EXIT_FAILURE);
+        }
+
         // 将新数据写入临时文件
         fwrite(data, sizeof(char), size, cb->tempfile);
+        perror("我写写写写写写写写写写写写写写写写写写写写写");
+        // 刷新文件流，确保数据被写入到文件中
+        fflush(cb->tempfile);
     } else {
         if (cb->size + size > cb->capacity) {
             size_t newCapacity = cb->capacity * 2;

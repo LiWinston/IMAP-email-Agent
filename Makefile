@@ -9,16 +9,16 @@ else
 endif
 
 all: $(EXE)
-$(EXE): src/main.c src/tag_manager.o src/set.o src/connection_manager.o src/PriorityQueue.o src/Email.o
+$(EXE): src/main.c src/tag_manager.o src/connection_manager.o src/PriorityQueue.o src/Email.o src/CBuffer.o src/set.o
 	gcc -Wall -o $(EXE) $+
+
+src/connection_manager.o: src/connection_manager.c src/connection_manager.h src/PriorityQueue.o src/Email.o src/CBuffer.o
+	gcc -Wall -c -o $@ $<
 
 src/tag_manager.o: src/tag_manager.c src/tag_manager.h src/set.o
 	gcc -Wall -c -o $@ $<
 
 src/set.o: src/set.c src/set.h
-	gcc -Wall -c -o $@ $<
-
-src/connection_manager.o: src/connection_manager.c src/connection_manager.h src/PriorityQueue.o src/Email.o src/CBuffer.o
 	gcc -Wall -c -o $@ $<
 
 src/PriorityQueue.o: src/PriorityQueue.c src/PriorityQueue.h
