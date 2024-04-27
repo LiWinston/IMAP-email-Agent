@@ -1,5 +1,5 @@
 #include "PriorityQueue.h"
-
+// Refenrenced from heap.c in project 1, add generic support
 
 PriorityQueue * priority_queue_create(size_t capacity, int (*cmp)(const void*, const void*)) {
     PriorityQueue* pq = (PriorityQueue*)malloc(sizeof(PriorityQueue));

@@ -2,15 +2,17 @@
 
 #include "connection_manager.h"
 #include "Email.h"
+#include "PriorityQueue.h"
+
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <unistd.h>
 #include <string.h>
-#include <netdb.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <unistd.h>
 
 ConnectionManager* connection_manager_create() {
     ConnectionManager* cm = (ConnectionManager*)malloc(sizeof(ConnectionManager));
@@ -71,7 +73,7 @@ void login_failure() {
     exit(3);
 }
 
-int login(ConnectionManager* cm, const char* username, const char* password) {
+int login(const ConnectionManager* cm, const char* username, const char* password) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
@@ -97,7 +99,7 @@ int login(ConnectionManager* cm, const char* username, const char* password) {
     return 0;
 }
 
-int select_folder(ConnectionManager* cm, const char* folder) {
+int select_folder(const ConnectionManager * cm, const char* folder) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
@@ -126,7 +128,7 @@ int select_folder(ConnectionManager* cm, const char* folder) {
     return 0;
 }
 
-int retrieve_email(const ConnectionManager * cm, const char* messageNum) {
+int retrieve_message(const ConnectionManager * cm, const char* messageNum) {
     char buffer[MAX_BUFFER_SIZE];
     char tag[TAG_MAX_LEN];
     sprintf(tag, "%s", generate_tag(cm->tag_manager));
@@ -162,6 +164,65 @@ int retrieve_email(const ConnectionManager * cm, const char* messageNum) {
     exit(0);
 }
 
+PriorityQueue* retrieve_email(const ConnectionManager * cm, const char* folder) {
+    char buffer[MAX_BUFFER_SIZE];
+    char tag[TAG_MAX_LEN];
+    sprintf(tag, "%s", generate_tag(cm->tag_manager));
+
+    if (select_folder(cm, folder) < 0) {
+        printf("Failed to select folder\n");
+        exit(3);
+    }
+
+    if (send(cm->socket_fd, "FETCH 1:* BODY[HEADER.FIELDS (SUBJECT)]", strlen("FETCH 1:* BODY[HEADER.FIELDS (SUBJECT)]"), 0) < 0) {
+        perror("Error sending FETCH command");
+        exit(3);
+    }
+
+    if (recv(cm->socket_fd, buffer, MAX_BUFFER_SIZE, 0) < 0) {
+        perror("Error receiving FETCH response");
+        exit(3);
+    }
+
+    if (strstr_case_insensitive(buffer, "OK") == NULL) {
+        printf("Failed to retrieve email\n");
+        exit(3);
+    }
+
+    PriorityQueue* pq = priority_queue_create(10, compareEmailByMessageNum);
+    if (!pq) {
+        printf("Failed to create priority queue\n");
+        exit(3);
+    }
+
+    char* line = strtok(buffer, "\r\n");
+    while (line != NULL) {
+        char* seqNumStr = strstr_case_insensitive(line, "FETCH");
+        if (seqNumStr != NULL) {
+            int seqNum;
+            if (sscanf(seqNumStr, "FETCH %d", &seqNum) != 1) {
+                printf("Failed to parse sequence number\n");
+                exit(3);
+            }
+
+            // 读主题行实际内容
+            char* subject = strstr_case_insensitive(line, "Subject:");
+            if (subject != NULL) {
+                Email* email = email_create(seqNum, subject);
+                if (!email) {
+                    printf("Failed to create email\n");
+                    exit(3);
+                }
+                priority_queue_push(pq, email);
+            }
+        }
+
+        // 下一行
+        line = strtok(NULL, "\r\n");
+    }
+
+    return pq;
+}
 
 void close_connection(ConnectionManager* cm) {
     if (cm->socket_fd != -1) {
