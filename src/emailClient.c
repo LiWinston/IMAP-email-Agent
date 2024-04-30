@@ -16,7 +16,8 @@ static int tagNum;
 
 static int login() {
     char msg[1024];
-    sprintf(msg, "a%d LOGIN %s %s\r\n", ++tagNum, arg.username, arg.password);
+    sprintf(msg, "a%d LOGIN \"%s\" \"%s\"\r\n", ++tagNum, arg.username,
+            arg.password);
 
     n_send(msg);
 
@@ -41,7 +42,7 @@ static int selectFolder() {
     if (arg.folder == NULL) {
         arg.folder = "INBOX";
     }
-    sprintf(msg, "a%d SELECT %s\r\n", ++tagNum, arg.folder);
+    sprintf(msg, "a%d SELECT \"%s\"\r\n", ++tagNum, arg.folder);
 
     n_send(msg);
 
