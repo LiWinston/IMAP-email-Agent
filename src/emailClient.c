@@ -109,6 +109,9 @@ static int parse() {
     while (true) {
         n_readline();
         printf("%s", byteList.bytes);
+        if (strstr(byteList.bytes, "OK Fetch completed") != NULL) {
+            break;
+        }
     }
 
     return 0;
