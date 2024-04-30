@@ -112,6 +112,7 @@ static int retrieve() {
     return 0;
 }
 
+char *strstr_case_insensitive(const char *haystack, const char *needle);
 static int parse() {
     char msg[1024];
     sprintf(msg,
@@ -123,7 +124,7 @@ static int parse() {
     while (true) {
         n_readline();
         printf("%s", byteList.bytes);
-        if (strstr(byteList.bytes, "OK Fetch completed") != NULL) {
+        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") != NULL) {
             break;
         }
     }
@@ -152,13 +153,13 @@ int c_run() {
     err = selectFolder();
     RETURN_ERR
 
-    if (strcmp(arg.command, "retrieve") == 0) {
+    if (strcasecmp(arg.command, "retrieve") == 0) {
         err = retrieve();
-    } else if (strcmp(arg.command, "parse") == 0) {
+    } else if (strcasecmp(arg.command, "parse") == 0) {
         err = parse();
-    } else if (strcmp(arg.command, "mime") == 0) {
+    } else if (strcasecmp(arg.command, "mime") == 0) {
         err = mime();
-    } else if (strcmp(arg.command, "list") == 0) {
+    } else if (strcasecmp(arg.command, "list") == 0) {
         err = list();
     } else {
         fprintf(stderr, "Unknown command %s\n", arg.command);
@@ -171,4 +172,21 @@ int c_run() {
 
 void c_free() {
     n_free();
+}
+
+char *strstr_case_insensitive(const char *haystack, const char *needle) {
+    // Case-insensitive version of strstr
+    size_t needle_len = strlen(needle);
+    if (needle_len == 0) {
+        return (char *)haystack;
+    }
+
+    while (*haystack) {
+        if (strncasecmp(haystack, needle, needle_len) == 0) {
+            return (char *)haystack;
+        }
+        haystack++;
+    }
+
+    return NULL;
 }
