@@ -15,7 +15,7 @@ typedef struct {
 
 extern Arguments arg;
 
-int c_run();
+int c_run() __attribute__((warn_unused_result));
 void c_free();
 
 #endif /* EMAIL_CLIENT_H */
