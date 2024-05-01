@@ -19,15 +19,15 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 1; i < argc; i++) {
-        if (strcasecmp(argv[i], "-u") == 0 && i < argc - 1) {
+        if (strcmp(argv[i], "-u") == 0 && i < argc - 1) {
             arg.username = argv[++i];
-        } else if (strcasecmp(argv[i], "-p") == 0 && i < argc - 1) {
+        } else if (strcmp(argv[i], "-p") == 0 && i < argc - 1) {
             arg.password = argv[++i];
-        } else if (strcasecmp(argv[i], "-f") == 0 && i < argc - 1) {
+        } else if (strcmp(argv[i], "-f") == 0 && i < argc - 1) {
             arg.folder = argv[++i];
-        } else if (strcasecmp(argv[i], "-n") == 0 && i < argc - 1) {
+        } else if (strcmp(argv[i], "-n") == 0 && i < argc - 1) {
             arg.messageNum = atoi(argv[++i]);
-        } else if (strcasecmp(argv[i], "-t") == 0) {
+        } else if (strcmp(argv[i], "-t") == 0) {
             arg.tls_flag = true;
         } else if (arg.command == NULL) {
             arg.command = argv[i];
@@ -44,8 +44,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (strcasecmp(arg.command, "retrieve") && strcasecmp(arg.command, "parse") &&
-        strcasecmp(arg.command, "mime") && strcasecmp(arg.command, "list")) {
+    if (strcmp(arg.command, "retrieve") && strcmp(arg.command, "parse") &&
+        strcmp(arg.command, "mime") && strcmp(arg.command, "list")) {
         fprintf(stderr, "Command \"%s\" is unknown\n", arg.command);
         return 1;
     }
