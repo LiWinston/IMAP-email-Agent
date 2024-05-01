@@ -10,11 +10,11 @@ all: release
 
 debug: CFLAGS += $(DEBUGFLAGS)
 debug: LDFLAGS += $(DEBUGFLAGS)
-debug: clean $(EXE)
+debug: clean format $(EXE)
 
 release: CFLAGS += $(RELEASEFLAGS)
 release: LDFLAGS += $(RELEASEFLAGS)
-release: clean $(EXE)
+release: clean format $(EXE)
 
 $(EXE): main.c emailClient.o
 	$(CC) $(CFLAGS) main.c -o $(EXE) emailClient.o network.o ssl.o -lssl -lcrypto $(LDFLAGS)
