@@ -137,6 +137,52 @@ static int mime() {
 }
 
 static int list() {
+    char msg[1024];
+    sprintf(msg, "a%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n", ++tagNum);
+    n_send(msg);
+
+    int messageNum = 0;
+    bool fetchCompleted = false;
+    while (!fetchCompleted) {
+        n_readline();
+        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") != NULL) {
+            fetchCompleted = true;
+            break;
+        }
+
+        // Extract subject from the response
+        if (strstr_case_insensitive(byteList.bytes, "Subject:") != NULL) {
+            char *subject = strstr_case_insensitive(byteList.bytes, "Subject:");
+            if (subject != NULL) {
+                subject += strlen("Subject:");
+                // Remove leading and trailing whitespace
+                while (*subject && (*subject == ' ' || *subject == '\t')) {
+                    subject++;
+                }
+                char *end = subject + strlen(subject) - 1;
+                while (end > subject && (*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
+                    *end-- = '\0';
+                }
+
+                // printf("%d: %s\n", ++messageNum, subject);
+                // if(strlen(subject) > 0 && *subject != '\0') {
+                if (strlen(subject) - 1 > 0) {
+                    // printf("Subject len %lu\n", strlen(subject));
+                    printf("%d: %s\n", ++messageNum, subject);
+                } else {
+                    printf("%d: <No subject>\n", ++messageNum);
+                }
+            } else {
+                // If subject is not found, print "<No subject>"
+                printf("%d: <No subject>\n", ++messageNum);
+            }
+        }
+    }
+
+    if (messageNum == 0) {
+        printf("Mailbox is empty\n");
+    }
+
     return 0;
 }
 
