@@ -24,13 +24,6 @@ static char buffer_bytes[BUFFER_SIZE];
 
 static int (*n_write)(const void *, ssize_t);
 static int (*n_read)(void *, ssize_t);
-static int (*ssl_initial)(int sockfd);
-static void (*ssl_free)();
-
-static void empty_void() {}
-static int empty_int(int _) {
-    return 0;
-}
 
 // Double call is ugly
 // But i think it's not bad for expensive operation like read/write
@@ -130,14 +123,10 @@ int n_connect(char *server_name, bool tls) {
         port = PORT;
         n_write = plain_write;
         n_read = plain_read;
-        ssl_initial = empty_int;
-        ssl_free = empty_void;
     } else {
         port = PORT_TLS;
         n_write = ssl_write;
         n_read = ssl_read;
-        ssl_initial = ssl_initial_;
-        ssl_free = ssl_free_;
     }
 
     struct hostent *host_info;
@@ -171,7 +160,10 @@ int n_connect(char *server_name, bool tls) {
         return 3;
     }
 
-    HANDLE_ERR(ssl_initial(sockfd))
+    // Initial ssl
+    if (tls) {
+        HANDLE_ERR(ssl_initial(sockfd))
+    }
 
     return 0;
 }

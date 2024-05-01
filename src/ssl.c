@@ -11,7 +11,7 @@ int ssl_read(void *buf, ssize_t n) {
     return SSL_read(ssl, buf, n);
 }
 
-int ssl_initial_(int sockfd) {
+int ssl_initial(int sockfd) {
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
@@ -40,7 +40,7 @@ int ssl_initial_(int sockfd) {
     return 0;
 }
 
-void ssl_free_() {
+void ssl_free() {
     if (ssl) {
         SSL_free(ssl);
     }
