@@ -18,9 +18,9 @@ release: clean $(EXE)
 
 $(EXE): main.c emailClient.o
 	$(CC) $(CFLAGS) main.c -o $(EXE) emailClient.o network.o ssl.o -lssl -lcrypto $(LDFLAGS)
-emailClient.o: emailClient.c emailClient.h network.o
+emailClient.o: emailClient.c emailClient.h macros.h network.o
 	$(CC) $(CFLAGS) -c emailClient.c -o emailClient.o
-network.o: network.c network.h ssl.o
+network.o: network.c network.h macros.h ssl.o
 	$(CC) $(CFLAGS) -c network.c -o network.o
 ssl.o: ssl.c ssl.h
 	$(CC) $(CFLAGS) -c ssl.c -o ssl.o

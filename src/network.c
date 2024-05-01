@@ -1,4 +1,5 @@
 #include "network.h"
+#include "macros.h"
 #include "ssl.h"
 
 #include <arpa/inet.h>
@@ -17,7 +18,7 @@
 
 ByteList byteList;
 
-static int sockfd;
+static int sockfd = -1;
 static ByteList buffer;
 static char buffer_bytes[BUFFER_SIZE];
 
@@ -117,6 +118,7 @@ int n_readBytes(int target) {
 }
 
 int n_connect(char *server_name, bool tls) {
+    int err = 0;
     sockfd = -1;
     buffer.bytes = buffer_bytes;
     byteList.size = BUFFER_SIZE;
@@ -170,13 +172,18 @@ int n_connect(char *server_name, bool tls) {
         return 3;
     }
 
-    ssl_initial(sockfd);
+    err = ssl_initial(sockfd);
+    RETURN_ERR
 
     return 0;
 }
 
 void n_free() {
     ssl_free();
-    close(sockfd);
-    free(byteList.bytes);
+    if (sockfd >= 0) {
+        close(sockfd);
+    }
+    if (byteList.bytes) {
+        free(byteList.bytes);
+    }
 }

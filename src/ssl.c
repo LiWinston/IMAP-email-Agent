@@ -41,6 +41,10 @@ int ssl_initial_(int sockfd) {
 }
 
 void ssl_free_() {
-    SSL_free(ssl);
-    SSL_CTX_free(ctx);
+    if (ssl) {
+        SSL_free(ssl);
+    }
+    if (ctx) {
+        SSL_CTX_free(ctx);
+    }
 }

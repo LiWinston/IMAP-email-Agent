@@ -50,9 +50,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    runClient();
+    int err = 0;
+    err = c_run();
 
-    killClient();
+    c_free();
 
-    return 0;
+    return err;
 }

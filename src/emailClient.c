@@ -1,4 +1,5 @@
 #include "emailClient.h"
+#include "macros.h"
 #include "network.h"
 
 #include <arpa/inet.h>
@@ -15,14 +16,17 @@ Arguments arg;
 static int tagNum;
 
 static int login() {
+    int err = 0;
     char msg[1024];
     sprintf(msg, "a%d LOGIN \"%s\" \"%s\"\r\n", ++tagNum, arg.username,
             arg.password);
 
-    n_send(msg);
+    err = n_send(msg);
+    RETURN_ERR
 
     while (true) {
-        n_readline();
+        err = n_readline();
+        RETURN_ERR
         if (byteList.bytes[0] != '*') {
             break;
         }
@@ -38,16 +42,19 @@ static int login() {
 }
 
 static int selectFolder() {
+    int err = 0;
     char msg[1024];
     if (arg.folder == NULL) {
         arg.folder = "INBOX";
     }
     sprintf(msg, "a%d SELECT \"%s\"\r\n", ++tagNum, arg.folder);
 
-    n_send(msg);
+    err = n_send(msg);
+    RETURN_ERR
 
     while (true) {
-        n_readline();
+        err = n_readline();
+        RETURN_ERR
         int maxMessageNum;
         if (arg.messageNum == 0 &&
             sscanf(byteList.bytes, "* %d EXISTS\r\n", &maxMessageNum) == 1) {
@@ -69,26 +76,32 @@ static int selectFolder() {
 }
 
 static int retrieve() {
+    int err = 0;
     char msg[1024];
     sprintf(msg, "a%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
 
-    n_send(msg);
+    err = n_send(msg);
+    RETURN_ERR
 
     // Answer format: * messageNum FETCH (BODY[] {bodyLength}body)
-    n_readline();
+    err = n_readline();
+    RETURN_ERR
+
     int messageNum, bodyLength;
     if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum,
                &bodyLength) != 2) {
         printf("Message not found\n");
         return 3;
     }
-    n_readBytes(bodyLength);
+    err = n_readBytes(bodyLength);
     // Print body
     printf("%s", byteList.bytes);
     // Read )/r/n
-    n_readline();
+    err = n_readline();
+    RETURN_ERR
     // Read last line
-    n_readline();
+    err = n_readline();
+    RETURN_ERR
 
     // This error may not specific in paper
     sprintf(msg, "a%d OK ", tagNum);
@@ -126,37 +139,36 @@ static int list() {
     return 0;
 }
 
-int runClient() {
+int c_run() {
+    int err = 0;
     tagNum = 0;
 
-    n_connect(arg.server_name, arg.tls_flag);
+    err = n_connect(arg.server_name, arg.tls_flag);
+    RETURN_ERR
 
-    int err = login();
-    if (err) {
-        return err;
-    }
+    err = login();
+    RETURN_ERR
 
     err = selectFolder();
-    if (err) {
-        return err;
-    }
+    RETURN_ERR
 
     if (strcmp(arg.command, "retrieve") == 0) {
-        retrieve();
+        err = retrieve();
     } else if (strcmp(arg.command, "parse") == 0) {
-        parse();
+        err = parse();
     } else if (strcmp(arg.command, "mime") == 0) {
-        mime();
+        err = mime();
     } else if (strcmp(arg.command, "list") == 0) {
-        list();
+        err = list();
     } else {
         fprintf(stderr, "Unknown command %s\n", arg.command);
         return 1;
     }
+    RETURN_ERR
 
     return 0;
 }
 
-void killClient() {
+void c_free() {
     n_free();
 }

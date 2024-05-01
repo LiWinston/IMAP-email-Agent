@@ -15,7 +15,7 @@ typedef struct {
 
 extern Arguments arg;
 
-int runClient();
-void killClient();
+int c_run();
+void c_free();
 
 #endif /* EMAIL_CLIENT_H */
