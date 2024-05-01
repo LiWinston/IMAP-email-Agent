@@ -124,7 +124,8 @@ static int parse() {
     while (true) {
         n_readline();
         printf("%s", byteList.bytes);
-        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") != NULL) {
+        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
+            NULL) {
             break;
         }
     }
@@ -138,14 +139,16 @@ static int mime() {
 
 static int list() {
     char msg[1024];
-    sprintf(msg, "a%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n", ++tagNum);
+    sprintf(msg, "a%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n",
+            ++tagNum);
     n_send(msg);
 
     int messageNum = 0;
     bool fetchCompleted = false;
     while (!fetchCompleted) {
         n_readline();
-        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") != NULL) {
+        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
+            NULL) {
             fetchCompleted = true;
             break;
         }
@@ -160,7 +163,8 @@ static int list() {
                     subject++;
                 }
                 char *end = subject + strlen(subject) - 1;
-                while (end > subject && (*end == ' ' || *end == '\t' || *end == '\r' || *end == '\n')) {
+                while (end > subject && (*end == ' ' || *end == '\t' ||
+                                         *end == '\r' || *end == '\n')) {
                     *end-- = '\0';
                 }
 

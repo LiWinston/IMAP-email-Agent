@@ -44,8 +44,9 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (strcasecmp(arg.command, "retrieve") && strcasecmp(arg.command, "parse") &&
-        strcasecmp(arg.command, "mime") && strcasecmp(arg.command, "list")) {
+    if (strcasecmp(arg.command, "retrieve") &&
+        strcasecmp(arg.command, "parse") && strcasecmp(arg.command, "mime") &&
+        strcasecmp(arg.command, "list")) {
         fprintf(stderr, "Command \"%s\" is unknown\n", arg.command);
         return 1;
     }
