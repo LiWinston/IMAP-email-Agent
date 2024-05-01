@@ -16,17 +16,14 @@ Arguments arg;
 static int tagNum;
 
 static int login() {
-    int err = 0;
     char msg[1024];
     sprintf(msg, "a%d LOGIN \"%s\" \"%s\"\r\n", ++tagNum, arg.username,
             arg.password);
 
-    err = n_send(msg);
-    RETURN_ERR
+    HANDLE_ERR(n_send(msg));
 
     while (true) {
-        err = n_readline();
-        RETURN_ERR
+        HANDLE_ERR(n_readline());
         if (byteList.bytes[0] != '*') {
             break;
         }
@@ -42,20 +39,17 @@ static int login() {
 }
 
 static int selectFolder() {
-    int err = 0;
     char msg[1024];
     if (arg.folder == NULL) {
         arg.folder = "INBOX";
     }
     sprintf(msg, "a%d SELECT \"%s\"\r\n", ++tagNum, arg.folder);
 
-    err = n_send(msg);
-    RETURN_ERR
+    HANDLE_ERR(n_send(msg))
 
+    int maxMessageNum;
     while (true) {
-        err = n_readline();
-        RETURN_ERR
-        int maxMessageNum;
+        HANDLE_ERR(n_readline())
         if (arg.messageNum == 0 &&
             sscanf(byteList.bytes, "* %d EXISTS\r\n", &maxMessageNum) == 1) {
             arg.messageNum = maxMessageNum;
@@ -76,16 +70,13 @@ static int selectFolder() {
 }
 
 static int retrieve() {
-    int err = 0;
     char msg[1024];
     sprintf(msg, "a%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
 
-    err = n_send(msg);
-    RETURN_ERR
+    HANDLE_ERR(n_send(msg))
 
     // Answer format: * messageNum FETCH (BODY[] {bodyLength}body)
-    err = n_readline();
-    RETURN_ERR
+    HANDLE_ERR(n_readline())
 
     int messageNum, bodyLength;
     if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum,
@@ -93,16 +84,13 @@ static int retrieve() {
         printf("Message not found\n");
         return 3;
     }
-    err = n_readBytes(bodyLength);
+    HANDLE_ERR(n_readBytes(bodyLength))
     // Print body
     printf("%s", byteList.bytes);
     // Read )/r/n
-    err = n_readline();
-    RETURN_ERR
+    HANDLE_ERR(n_readline())
     // Read last line
-    err = n_readline();
-    RETURN_ERR
-
+    HANDLE_ERR(n_readline())
     // This error may not specific in paper
     sprintf(msg, "a%d OK ", tagNum);
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
@@ -112,16 +100,12 @@ static int retrieve() {
     return 0;
 }
 
-static char *strstr_case_insensitive(const char *haystack, const char *needle) {
-    // Case-insensitive version of strstr
+// Case-insensitive version of strstr
+static char *strstr_case_insensitive(char *haystack, const char *needle) {
     size_t needle_len = strlen(needle);
-    if (needle_len == 0) {
-        return (char *)haystack;
-    }
-
     while (*haystack) {
         if (strncasecmp(haystack, needle, needle_len) == 0) {
-            return (char *)haystack;
+            return haystack;
         }
         haystack++;
     }
@@ -130,18 +114,15 @@ static char *strstr_case_insensitive(const char *haystack, const char *needle) {
 }
 
 static int parse() {
-    int err = 0;
     char msg[1024];
     sprintf(msg,
             "a%d FETCH %d BODY.PEEK[HEADER.FIELDS (FROM TO DATE SUBJECT)]\r\n",
             ++tagNum, arg.messageNum);
 
-    err = n_send(msg);
-    RETURN_ERR
+    HANDLE_ERR(n_send(msg))
 
     while (true) {
-        err = n_readline();
-        RETURN_ERR
+        HANDLE_ERR(n_readline())
         printf("%s", byteList.bytes);
         if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
             NULL) {
@@ -157,18 +138,16 @@ static int mime() {
 }
 
 static int list() {
-    int err = 0;
     char msg[1024];
     sprintf(msg, "a%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n",
             ++tagNum);
-    err = n_send(msg);
-    RETURN_ERR
+
+    HANDLE_ERR(n_send(msg))
 
     int messageNum = 0;
     bool fetchCompleted = false;
     while (!fetchCompleted) {
-        err = n_readline();
-        RETURN_ERR
+        HANDLE_ERR(n_readline())
         if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
             NULL) {
             fetchCompleted = true;
@@ -213,31 +192,26 @@ static int list() {
 }
 
 int c_run() {
-    int err = 0;
     tagNum = 0;
 
-    err = n_connect(arg.server_name, arg.tls_flag);
-    RETURN_ERR
+    HANDLE_ERR(n_connect(arg.server_name, arg.tls_flag))
 
-    err = login();
-    RETURN_ERR
+    HANDLE_ERR(login())
 
-    err = selectFolder();
-    RETURN_ERR
+    HANDLE_ERR(selectFolder())
 
     if (strcmp(arg.command, "retrieve") == 0) {
-        err = retrieve();
+        HANDLE_ERR(retrieve())
     } else if (strcmp(arg.command, "parse") == 0) {
-        err = parse();
+        HANDLE_ERR(parse())
     } else if (strcmp(arg.command, "mime") == 0) {
-        err = mime();
+        HANDLE_ERR(mime())
     } else if (strcmp(arg.command, "list") == 0) {
-        err = list();
+        HANDLE_ERR(list())
     } else {
         fprintf(stderr, "Unknown command %s\n", arg.command);
         return 1;
     }
-    RETURN_ERR
 
     return 0;
 }

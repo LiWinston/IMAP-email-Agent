@@ -118,7 +118,6 @@ int n_readBytes(int target) {
 }
 
 int n_connect(char *server_name, bool tls) {
-    int err = 0;
     sockfd = -1;
     buffer.bytes = buffer_bytes;
     byteList.size = BUFFER_SIZE;
@@ -172,8 +171,7 @@ int n_connect(char *server_name, bool tls) {
         return 3;
     }
 
-    err = ssl_initial(sockfd);
-    RETURN_ERR
+    HANDLE_ERR(ssl_initial(sockfd))
 
     return 0;
 }
