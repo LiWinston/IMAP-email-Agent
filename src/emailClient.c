@@ -2,22 +2,38 @@
 #include "macros.h"
 #include "network.h"
 
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
 Arguments arg;
 
 static int tagNum;
 
+// Case-insensitive version of strstr
+static char *strstr_case_insensitive(char *haystack, const char *needle) {
+    size_t needle_len = strlen(needle);
+    while (*haystack) {
+        if (strncasecmp(haystack, needle, needle_len) == 0) {
+            return haystack;
+        }
+        haystack++;
+    }
+
+    return NULL;
+}
+
+// Convert string to upper case
+static void toUpper(char *str) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = toupper((unsigned char)str[i]);
+    }
+}
+
 static int login() {
     char msg[1024];
-    sprintf(msg, "a%d LOGIN \"%s\" \"%s\"\r\n", ++tagNum, arg.username,
+    sprintf(msg, "A%d LOGIN \"%s\" \"%s\"\r\n", ++tagNum, arg.username,
             arg.password);
 
     HANDLE_ERR(n_send(msg));
@@ -29,7 +45,8 @@ static int login() {
         }
     }
 
-    sprintf(msg, "a%d OK ", tagNum);
+    sprintf(msg, "A%d OK ", tagNum);
+    toUpper(byteList.bytes);
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
         printf("Login failure\n");
         return 3;
@@ -43,13 +60,14 @@ static int selectFolder() {
     if (arg.folder == NULL) {
         arg.folder = "INBOX";
     }
-    sprintf(msg, "a%d SELECT \"%s\"\r\n", ++tagNum, arg.folder);
+    sprintf(msg, "A%d SELECT \"%s\"\r\n", ++tagNum, arg.folder);
 
     HANDLE_ERR(n_send(msg))
 
     int maxMessageNum;
     while (true) {
         HANDLE_ERR(n_readline())
+        toUpper(byteList.bytes);
         if (arg.messageNum == 0 &&
             sscanf(byteList.bytes, "* %d EXISTS\r\n", &maxMessageNum) == 1) {
             arg.messageNum = maxMessageNum;
@@ -60,7 +78,7 @@ static int selectFolder() {
         }
     }
 
-    sprintf(msg, "a%d OK ", tagNum);
+    sprintf(msg, "A%d OK ", tagNum);
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
         printf("Folder not found\n");
         return 3;
@@ -71,12 +89,13 @@ static int selectFolder() {
 
 static int retrieve() {
     char msg[1024];
-    sprintf(msg, "a%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
+    sprintf(msg, "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
 
     HANDLE_ERR(n_send(msg))
 
     // Answer format: * messageNum FETCH (BODY[] {bodyLength}body)
     HANDLE_ERR(n_readline())
+    toUpper(byteList.bytes);
 
     int messageNum, bodyLength;
     if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum,
@@ -92,7 +111,8 @@ static int retrieve() {
     // Read last line
     HANDLE_ERR(n_readline())
     // This error may not specific in paper
-    sprintf(msg, "a%d OK ", tagNum);
+    sprintf(msg, "A%d OK ", tagNum);
+    toUpper(byteList.bytes);
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
         printf("Message not found\n");
         return 3;
@@ -100,23 +120,10 @@ static int retrieve() {
     return 0;
 }
 
-// Case-insensitive version of strstr
-static char *strstr_case_insensitive(char *haystack, const char *needle) {
-    size_t needle_len = strlen(needle);
-    while (*haystack) {
-        if (strncasecmp(haystack, needle, needle_len) == 0) {
-            return haystack;
-        }
-        haystack++;
-    }
-
-    return NULL;
-}
-
 static int parse() {
     char msg[1024];
     sprintf(msg,
-            "a%d FETCH %d BODY.PEEK[HEADER.FIELDS (FROM TO DATE SUBJECT)]\r\n",
+            "A%d FETCH %d BODY.PEEK[HEADER.FIELDS (FROM TO DATE SUBJECT)]\r\n",
             ++tagNum, arg.messageNum);
 
     HANDLE_ERR(n_send(msg))
@@ -139,7 +146,7 @@ static int mime() {
 
 static int list() {
     char msg[1024];
-    sprintf(msg, "a%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n",
+    sprintf(msg, "A%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n",
             ++tagNum);
 
     HANDLE_ERR(n_send(msg))
