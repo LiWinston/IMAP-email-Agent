@@ -130,15 +130,18 @@ static char *strstr_case_insensitive(const char *haystack, const char *needle) {
 }
 
 static int parse() {
+    int err = 0;
     char msg[1024];
     sprintf(msg,
             "a%d FETCH %d BODY.PEEK[HEADER.FIELDS (FROM TO DATE SUBJECT)]\r\n",
             ++tagNum, arg.messageNum);
 
-    n_send(msg);
+    err = n_send(msg);
+    RETURN_ERR
 
     while (true) {
-        n_readline();
+        err = n_readline();
+        RETURN_ERR
         printf("%s", byteList.bytes);
         if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
             NULL) {
@@ -154,15 +157,18 @@ static int mime() {
 }
 
 static int list() {
+    int err = 0;
     char msg[1024];
     sprintf(msg, "a%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n",
             ++tagNum);
-    n_send(msg);
+    err = n_send(msg);
+    RETURN_ERR
 
     int messageNum = 0;
     bool fetchCompleted = false;
     while (!fetchCompleted) {
-        n_readline();
+        err = n_readline();
+        RETURN_ERR
         if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
             NULL) {
             fetchCompleted = true;
