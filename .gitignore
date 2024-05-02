@@ -2,4 +2,3 @@ fetchmail
 *.o
 ca.crt
 /.idea
-/.vscode
