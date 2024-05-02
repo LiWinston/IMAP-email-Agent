@@ -2,10 +2,11 @@ name: Project 2 Visible Tests
 on:
   push:
 jobs:
-  proj1-vis:
+  proj2-vis:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/feit-comp30023-2024/p2:latest
+      options: --sysctl net.ipv6.conf.all.disable_ipv6=0
     timeout-minutes: 10
     permissions:
       contents: read
@@ -15,7 +16,7 @@ jobs:
 
       - name: Vendor (Rust only)
         run: |
-          if (find -name "Cargo.lock" && command -v make && command -v cargo) > /dev/null; then \
+          if (find -name "Cargo.lock" | grep . && command -v make && command -v cargo) > /dev/null; then \
             make vendor; \
           fi
 
