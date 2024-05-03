@@ -12,6 +12,8 @@ Arguments arg;
 static int tagNum;
 
 // Case-insensitive version of strstr
+__attribute__((unused)) static char *
+strstr_case_insensitive(char *haystack, const char *needle);
 static char *strstr_case_insensitive(char *haystack, const char *needle) {
     size_t needle_len = strlen(needle);
     while (*haystack) {
@@ -59,7 +61,6 @@ static int login() {
     }
 
     sprintf(msg, "A%d OK ", tagNum);
-    toUpper(byteList.bytes);
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
         printf("Login failure\n");
         return 3;
@@ -125,7 +126,6 @@ static int retrieve() {
     HANDLE_ERR(n_readLine())
     // This error may not specific in paper
     sprintf(msg, "A%d OK ", tagNum);
-    toUpper(byteList.bytes);
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
         printf("Message not found\n");
         return 3;
@@ -135,18 +135,70 @@ static int retrieve() {
 
 static int parse() {
     char msg[1024];
-    sprintf(msg,
-            "A%d FETCH %d BODY.PEEK[HEADER.FIELDS (FROM TO DATE SUBJECT)]\r\n",
-            ++tagNum, arg.messageNum);
+    // Need four request to get all info, inefficient but easy for string parse,
+    // and I don't think assignment ask for speed.
+    char *headers[4] = {"From", "To", "Date", "Subject"};
+    for (int hd = 0; hd < 4; hd++) {
+        sprintf(msg, "A%d FETCH %d BODY.PEEK[HEADER.FIELDS (%s)]\r\n", ++tagNum,
+                arg.messageNum, headers[hd]);
 
-    HANDLE_ERR(n_send(msg))
+        HANDLE_ERR(n_send(msg))
 
-    while (true) {
-        HANDLE_ERR(n_readLine())
-        printf("%s", byteList.bytes);
-        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
-            NULL) {
-            break;
+        while (true) {
+            HANDLE_ERR(n_readLine())
+            toUpper(byteList.bytes);
+
+            if (byteList.bytes[0] != '*') {
+                break;
+            }
+
+            int messageNum, bodyLen;
+            if (sscanf(byteList.bytes,
+                       "* %d FETCH (BODY[HEADER.FIELDS (%[^)])] {%d}\r\n",
+                       &messageNum, msg, &bodyLen) != 3) {
+                // TODO: unkonwn error, how to handle?
+                return 3;
+            }
+
+            HANDLE_ERR(n_readBytes(bodyLen))
+            unfold(byteList.bytes);
+
+            int i = strlen(byteList.bytes) - 4;
+            // Tmp fix, shit code for tutor
+            if (i == -2) {
+                if (hd == 0 || hd == 2) {
+                    // TODO: unkonwn error, how to handle?
+                    return 3;
+                }
+                if (hd == 3) {
+                    printf("Subject: <No subject>\n");
+
+                } else {
+                    printf("To:\n");
+                }
+                HANDLE_ERR(n_readLine())
+                continue;
+            } else {
+                // Tmp fix, will remove after ci fix:
+                // https://edstem.org/au/courses/15616/discussion/1944410
+
+                byteList.bytes[i] = '\0';
+                while (byteList.bytes[--i] == ' ') {
+                    byteList.bytes[i] = '\0';
+                    i--;
+                }
+            }
+
+            printf("%s: %s\n", headers[hd],
+                   byteList.bytes + strlen(headers[hd]) + 2);
+            // Read remain line
+            HANDLE_ERR(n_readLine())
+        }
+
+        sprintf(msg, "A%d OK ", tagNum);
+        if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
+            printf("Message not found\n");
+            return 3;
         }
     }
 
@@ -183,7 +235,7 @@ static int list() {
         HANDLE_ERR(n_readBytes(bodyLen));
         unfold(byteList.bytes);
 
-        char *subject = "<No subject>\n";
+        char *subject = "<No subject>";
         // No empty subject
         if (strlen(byteList.bytes) >= 10) {
             subject = byteList.bytes + 9;
@@ -191,14 +243,11 @@ static int list() {
             // https://edstem.org/au/courses/15616/discussion/1944410
             int i = strlen(byteList.bytes) - 4;
             byteList.bytes[i] = '\0';
-            while (byteList.bytes[i] == ' ') {
+            while (byteList.bytes[--i] == ' ') {
                 byteList.bytes[i] = '\0';
-                i--;
             }
-            byteList.bytes[i] = '\n';
-            byteList.bytes[i + 1] = '\0';
         }
-        printf("%d: %s", messageNum, subject);
+        printf("%d: %s\n", messageNum, subject);
         // Read remain line
         HANDLE_ERR(n_readLine())
     }

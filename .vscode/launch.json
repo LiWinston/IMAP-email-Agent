@@ -15,9 +15,11 @@
                 "-u",
                 "test@comp30023",
                 "-f",
-                "Test",
+                "headers",
+                "-n",
+                "5",
                 "-t",
-                "retrieve",
+                "parse",
                 "unimelb-comp30023-2024.cloud.edu.au"
             ],
             "stopAtEntry": false,
