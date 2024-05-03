@@ -21,6 +21,7 @@ ByteList byteList;
 static int sockfd = -1;
 static ByteList buffer;
 static char buffer_bytes[BUFFER_SIZE];
+static struct addrinfo *res;
 
 static int (*n_write)(const void *, ssize_t);
 static int (*n_read)(void *, ssize_t);
@@ -129,33 +130,33 @@ int n_connect(char *server_name, bool tls) {
         n_read = ssl_read;
     }
 
-    struct hostent *host_info;
-    struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
+    struct addrinfo hints;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
 
     // Resolve server ip
-    host_info = gethostbyname(server_name);
-    if (host_info == NULL) {
+    if (getaddrinfo(server_name, NULL, &hints, &res) != 0) {
         fprintf(stderr, "Cannot resolve hostname %s\n", server_name);
         return 3;
     }
 
-    // Set server address struct
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port);
-    memcpy(&server_addr.sin_addr, host_info->h_addr_list[0],
-           host_info->h_length);
-
     // Create socket
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sockfd < 0) {
         perror("Error opening socket");
         return 3;
     }
 
+    // Set port
+    if (res->ai_family == AF_INET) {
+        ((struct sockaddr_in *)res->ai_addr)->sin_port = htons(port);
+    } else if (res->ai_family == AF_INET6) {
+        ((struct sockaddr_in6 *)res->ai_addr)->sin6_port = htons(port);
+    }
+
     // Connect to the server
-    if (connect(sockfd, (struct sockaddr *)&server_addr, sizeof(server_addr)) <
-        0) {
+    if (connect(sockfd, res->ai_addr, res->ai_addrlen) < 0) {
         perror("Error connecting to server");
         return 3;
     }
@@ -170,6 +171,9 @@ int n_connect(char *server_name, bool tls) {
 
 void n_free() {
     ssl_free();
+    if (res) {
+        freeaddrinfo(res);
+    }
     if (sockfd >= 0) {
         close(sockfd);
     }
