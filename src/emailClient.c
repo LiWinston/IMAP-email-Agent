@@ -150,18 +150,26 @@ static int list() {
             ++tagNum);
 
     HANDLE_ERR(n_send(msg))
+    while (1) {
+        HANDLE_ERR(n_readline());
+        toUpper(byteList.bytes);
 
-    int messageNum = 0;
-    bool fetchCompleted = false;
-    while (!fetchCompleted) {
-        HANDLE_ERR(n_readline())
-        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
-            NULL) {
-            fetchCompleted = true;
+        int messageNum, bodyLength;
+        if (sscanf(byteList.bytes,
+                   "* %d FETCH (BODY[HEADER.FIELDS (SUBJECT)] {%d}\r\n",
+                   &messageNum,
+                   &bodyLength) != 2) {
+            //this line is supposed to be the response message body
+            //thus not invulnerable to content attacks
+            if (sscanf(byteList.bytes, "A%d OK ", &tagNum) != 1) {
+                printf("退出的byteList.bytes: %sEOBL\n", byteList.bytes);
+                return 0;
+            }
+            printf(" completed\n");
             break;
         }
-
-        // Extract subject from the response
+        HANDLE_ERR(n_readBytes(bodyLength))
+        char *end = byteList.bytes + bodyLength*sizeof(char) - 1;
         if (strstr_case_insensitive(byteList.bytes, "Subject:") != NULL) {
             char *subject = strstr_case_insensitive(byteList.bytes, "Subject:");
             if (subject != NULL) {
@@ -170,33 +178,37 @@ static int list() {
                 while (*subject && (*subject == ' ' || *subject == '\t')) {
                     subject++;
                 }
-                char *end = subject + strlen(subject) - 1;
+
+                // while(*end == '\r' || *end == '\n') {
+                //     *end-- = '\0';
+                // }
+                if(*end == ')') {
+                    *end-- = '\0';
+                }else {
+                    printf("定长读取的末尾没找到结尾kuohao：*end=%c\n", *end);
+                }
                 while (end > subject && (*end == ' ' || *end == '\t' ||
                                          *end == '\r' || *end == '\n')) {
                     *end-- = '\0';
                 }
-
-                // printf("%d: %s\n", ++messageNum, subject);
-                // if(strlen(subject) > 0 && *subject != '\0') {
-                if (strlen(subject) - 1 > 0) {
+                // printf("读到的：%d: %s", messageNum, subject);
+                // printf("读到的打印完了\n");
+                if (strlen(subject) > 0) {
                     // printf("Subject len %lu\n", strlen(subject));
-                    printf("%d: %s\n", ++messageNum, subject);
+                    printf("%d: %s\n", messageNum, subject);
                 } else {
-                    printf("%d: <No subject>\n", ++messageNum);
+                    printf("%d: <No subject>\n", messageNum);
                 }
             } else {
                 // If subject is not found, print "<No subject>"
-                printf("%d: <No subject>\n", ++messageNum);
+                printf("%d: <No subject>\n", messageNum);
             }
         }
+        HANDLE_ERR(n_readline());//把括号后面换行读了
     }
-
-    if (messageNum == 0) {
-        printf("Mailbox is empty\n");
-    }
-
     return 0;
 }
+
 
 int c_run() {
     tagNum = 0;
