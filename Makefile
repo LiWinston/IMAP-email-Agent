@@ -2,5 +2,5 @@ default: release
 
 .DEFAULT:
 	cd src && $(MAKE) $@
-test: release
+test: clean release
 	./test.sh

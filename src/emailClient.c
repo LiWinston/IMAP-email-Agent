@@ -31,6 +31,19 @@ static void toUpper(char *str) {
     }
 }
 
+// Removing any CRLF that is immediately followed by WSP
+static void unfold(char *s) {
+    int n = strlen(s);
+    int j = 0;
+    for (int i = 0; i < n; i++, j++) {
+        if (i < n - 2 && s[i] == '\r' && s[i + 1] == '\n' && s[i + 2] == ' ') {
+            i += 2;
+        }
+        s[j] = s[i];
+    }
+    s[j] = '\0';
+}
+
 static int login() {
     char msg[1024];
     sprintf(msg, "A%d LOGIN \"%s\" \"%s\"\r\n", ++tagNum, arg.username,
@@ -39,7 +52,7 @@ static int login() {
     HANDLE_ERR(n_send(msg));
 
     while (true) {
-        HANDLE_ERR(n_readline());
+        HANDLE_ERR(n_readLine());
         if (byteList.bytes[0] != '*') {
             break;
         }
@@ -66,7 +79,7 @@ static int selectFolder() {
 
     int maxMessageNum;
     while (true) {
-        HANDLE_ERR(n_readline())
+        HANDLE_ERR(n_readLine())
         toUpper(byteList.bytes);
         if (arg.messageNum == 0 &&
             sscanf(byteList.bytes, "* %d EXISTS\r\n", &maxMessageNum) == 1) {
@@ -94,7 +107,7 @@ static int retrieve() {
     HANDLE_ERR(n_send(msg))
 
     // Answer format: * messageNum FETCH (BODY[] {bodyLength}body)
-    HANDLE_ERR(n_readline())
+    HANDLE_ERR(n_readLine())
     toUpper(byteList.bytes);
 
     int messageNum, bodyLength;
@@ -107,9 +120,9 @@ static int retrieve() {
     // Print body
     printf("%s", byteList.bytes);
     // Read )/r/n
-    HANDLE_ERR(n_readline())
+    HANDLE_ERR(n_readLine())
     // Read last line
-    HANDLE_ERR(n_readline())
+    HANDLE_ERR(n_readLine())
     // This error may not specific in paper
     sprintf(msg, "A%d OK ", tagNum);
     toUpper(byteList.bytes);
@@ -129,7 +142,7 @@ static int parse() {
     HANDLE_ERR(n_send(msg))
 
     while (true) {
-        HANDLE_ERR(n_readline())
+        HANDLE_ERR(n_readLine())
         printf("%s", byteList.bytes);
         if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
             NULL) {
@@ -151,49 +164,46 @@ static int list() {
 
     HANDLE_ERR(n_send(msg))
 
-    int messageNum = 0;
-    bool fetchCompleted = false;
-    while (!fetchCompleted) {
-        HANDLE_ERR(n_readline())
-        if (strstr_case_insensitive(byteList.bytes, "OK Fetch completed") !=
-            NULL) {
-            fetchCompleted = true;
+    while (true) {
+        // Read first line
+        HANDLE_ERR(n_readLine())
+        if (byteList.bytes[0] != '*') {
             break;
         }
+        toUpper(byteList.bytes);
 
         // Extract subject from the response
-        if (strstr_case_insensitive(byteList.bytes, "Subject:") != NULL) {
-            char *subject = strstr_case_insensitive(byteList.bytes, "Subject:");
-            if (subject != NULL) {
-                subject += strlen("Subject:");
-                // Remove leading and trailing whitespace
-                while (*subject && (*subject == ' ' || *subject == '\t')) {
-                    subject++;
-                }
-                char *end = subject + strlen(subject) - 1;
-                while (end > subject && (*end == ' ' || *end == '\t' ||
-                                         *end == '\r' || *end == '\n')) {
-                    *end-- = '\0';
-                }
-
-                // printf("%d: %s\n", ++messageNum, subject);
-                // if(strlen(subject) > 0 && *subject != '\0') {
-                if (strlen(subject) - 1 > 0) {
-                    // printf("Subject len %lu\n", strlen(subject));
-                    printf("%d: %s\n", ++messageNum, subject);
-                } else {
-                    printf("%d: <No subject>\n", ++messageNum);
-                }
-            } else {
-                // If subject is not found, print "<No subject>"
-                printf("%d: <No subject>\n", ++messageNum);
-            }
+        int messageNum, bodyLen;
+        if (sscanf(byteList.bytes,
+                   "* %d FETCH (BODY[HEADER.FIELDS (SUBJECT)] {%d}\r\n",
+                   &messageNum, &bodyLen) != 2) {
+            return 3;
         }
+        // Read body
+        HANDLE_ERR(n_readBytes(bodyLen));
+        unfold(byteList.bytes);
+
+        char *subject = "<No subject>\n";
+        // No empty subject
+        if (strlen(byteList.bytes) >= 10) {
+            subject = byteList.bytes + 9;
+            // Tmp fix, will remove after ci fix:
+            // https://edstem.org/au/courses/15616/discussion/1944410
+            int i = strlen(byteList.bytes) - 4;
+            byteList.bytes[i] = '\0';
+            while (byteList.bytes[i] == ' ') {
+                byteList.bytes[i] = '\0';
+                i--;
+            }
+            byteList.bytes[i] = '\n';
+            byteList.bytes[i + 1] = '\0';
+        }
+        printf("%d: %s", messageNum, subject);
+        // Read remain line
+        HANDLE_ERR(n_readLine())
     }
 
-    if (messageNum == 0) {
-        printf("Mailbox is empty\n");
-    }
+    // TODO: handle error? cannot find details in pdf
 
     return 0;
 }

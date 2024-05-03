@@ -50,7 +50,7 @@ int n_send(char *msg) {
     return 0;
 }
 
-int n_readline() {
+int n_readLine() {
     // Each line of characters MUST be no more than 998 characters, so do not
     // need worry the size of bytelist
     byteList.cur = 0;
