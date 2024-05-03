@@ -14,13 +14,13 @@ debug: clean format $(EXE)
 
 release: CFLAGS += $(RELEASEFLAGS)
 release: LDFLAGS += $(RELEASEFLAGS)
-release: clean format $(EXE)
+release: clean $(EXE)
 
-$(EXE): main.c emailClient.o
+$(EXE): main.c emailClient.o network.o ssl.o
 	$(CC) $(CFLAGS) main.c -o $(EXE) emailClient.o network.o ssl.o -lssl -lcrypto $(LDFLAGS)
-emailClient.o: emailClient.c emailClient.h macros.h network.o
+emailClient.o: emailClient.c emailClient.h macros.h 
 	$(CC) $(CFLAGS) -c emailClient.c -o emailClient.o
-network.o: network.c network.h macros.h ssl.o
+network.o: network.c network.h macros.h
 	$(CC) $(CFLAGS) -c network.c -o network.o
 ssl.o: ssl.c ssl.h
 	$(CC) $(CFLAGS) -c ssl.c -o ssl.o
