@@ -144,6 +144,16 @@ static int mime() {
     return 0;
 }
 
+static void print_NoInternalRNLine(int messageNum, char *subject) {
+    printf("%d: ", messageNum);
+    for (int i = 0; subject[i]; i++) {
+        if (subject[i] != '\r' && subject[i] != '\n') {
+            putchar(subject[i]);
+        }
+    }
+    putchar('\n');
+}
+
 static int list() {
     char msg[1024];
     sprintf(msg, "A%d FETCH 1:* BODY.PEEK[HEADER.FIELDS (SUBJECT)]\r\n",
@@ -184,9 +194,10 @@ static int list() {
                 // }
                 if(*end == ')') {
                     *end-- = '\0';
-                }else {
-                    printf("定长读取的末尾没找到结尾kuohao：*end=%c\n", *end);
                 }
+                // else {
+                //     printf("定长读取的末尾没找到结尾kuohao：*end=%c\n", *end);
+                // }
                 while (end > subject && (*end == ' ' || *end == '\t' ||
                                          *end == '\r' || *end == '\n')) {
                     *end-- = '\0';
@@ -195,7 +206,7 @@ static int list() {
                 // printf("读到的打印完了\n");
                 if (strlen(subject) > 0) {
                     // printf("Subject len %lu\n", strlen(subject));
-                    printf("%d: %s\n", messageNum, subject);
+                    print_NoInternalRNLine(messageNum, subject);
                 } else {
                     printf("%d: <No subject>\n", messageNum);
                 }
