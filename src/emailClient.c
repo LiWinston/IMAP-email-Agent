@@ -205,8 +205,72 @@ static int parse() {
     return 0;
 }
 
+static int find_boundary(const char *content_type, char *boundary) {
+    const char *prefix = "boundary=";
+    const char *start = strstr(content_type, prefix);
+    if (!start) return 0;  // Boundary not found
+
+    start += strlen(prefix);
+    if (*start == '"') {
+        start++;  // Skip the opening quote if present
+        size_t i = 0;
+        while (start[i] && start[i] != '"') {
+            boundary[i] = start[i];
+            i++;
+        }
+        boundary[i] = '\0';  // Null terminate the string
+    } else {
+        // Copy up to the next semicolon or end of string
+        int i = 0;
+        while (start[i] && start[i] != ';' && start[i] != '\r' && start[i] != '\n') {
+            boundary[i] = start[i];
+            i++;
+        }
+        boundary[i] = '\0';  // Null terminate the string
+    }
+
+    return 1;
+}
+
 static int mime() {
-    return 0;
+    char msg[1024];
+    sprintf(msg, "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
+    HANDLE_ERR(n_send(msg));
+    HANDLE_ERR(n_readLine());
+
+    // Extract body length from server response
+
+    int messageNum, bodyLen;
+    if(sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum, &bodyLen)!=2){
+        printf("Message not found\n");
+        return 3;
+    }
+
+    HANDLE_ERR(n_readBytes(bodyLen));
+
+    char boundary[256];
+    if (!find_boundary(byteList.bytes, boundary)) {
+        printf("MIME boundary not found\n");
+        return 4;  // Exit with error if boundary not found
+    }
+
+    // Parse MIME parts
+    const char *delimiter_start = strcat(strcat("\r\n--", boundary), "\r\n");
+    const char *delimiter_end = strcat(strcat("\r\n--", boundary), "--\r\n");
+
+    char *part = strtok(byteList.bytes, delimiter_start);
+    while (part) {
+        if (strstr(part, "Content-Type: text/plain; charset=UTF-8")) {
+            part = strtok(NULL, "\r\n\r\n");  // Move to the content part
+            printf("%s", part);  // Output the plain text content
+            return 0;  // Success
+        }
+        part = strtok(NULL, delimiter_start);
+        if (strncmp(part, delimiter_end, strlen(delimiter_end)) == 0) break;  // End of MIME parts
+    }
+
+    printf("UTF-8 text/plain part not found\n");
+    return 4;  // If no suitable part found, return with error
 }
 
 static int list() {
