@@ -266,10 +266,11 @@ static int mime() {
 
     printf("到这没问题a\n");
 
-    // Parse MIME parts
-    const char *delimiter_start = strcat(strcat("\r\n--", boundary), "\r\n");
-    printf("到这没问题b\n");
-    const char *delimiter_end = strcat(strcat("\r\n--", boundary), "--\r\n");
+    char delimiter_start[300]; // 根据实际情况调整大小
+    snprintf(delimiter_start, sizeof(delimiter_start), "\r\n--%s\r\n", boundary);
+
+    char delimiter_end[300]; // 根据实际情况调整大小
+    snprintf(delimiter_end, sizeof(delimiter_end), "\r\n--%s--\r\n", boundary);
     printf("到这没问题c\n");
 
     int daozhemeiwenti = 0;
@@ -278,11 +279,11 @@ static int mime() {
         printf("到这没问题%d\n", daozhemeiwenti++);
         if (strstr(part, "Content-Type: text/plain; charset=UTF-8")) {
             part = strtok(NULL, "\r\n\r\n");  // Move to the content part
-            printf("%s", part);  // Output the plain text content
+            if (part) printf("%s", part);  // Output the plain text content
             return 0;  // Success
         }
         part = strtok(NULL, delimiter_start);
-        if (strncmp(part, delimiter_end, strlen(delimiter_end)) == 0) break;  // End of MIME parts
+        if (part && strncmp(part, delimiter_end, strlen(delimiter_end)) == 0) break;  // End of MIME parts
     }
 
     printf("UTF-8 text/plain part not found\n");
