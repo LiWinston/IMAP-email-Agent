@@ -205,6 +205,15 @@ static int parse() {
     return 0;
 }
 
+/* boundary="--==_mimepart_6626f64b5ee67_2ddfc4b1492049"; l48 in ret-mst
+ * l56 :
+----==_mimepart_6626f64b5ee67_2ddfc4b1492049
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+ */
+
 static int find_boundary(const char *content_type, char *boundary) {
     const char *prefix = "boundary=";
     const char *start = strstr(content_type, prefix);
@@ -228,7 +237,8 @@ static int find_boundary(const char *content_type, char *boundary) {
         }
         boundary[i] = '\0';  // Null terminate the string
     }
-
+    printf("Find Boundary: %s\n", boundary);
+    printf("at %s\n", start);
     return 1;
 }
 
@@ -254,12 +264,18 @@ static int mime() {
         return 4;  // Exit with error if boundary not found
     }
 
+    printf("到这没问题a\n");
+
     // Parse MIME parts
     const char *delimiter_start = strcat(strcat("\r\n--", boundary), "\r\n");
+    printf("到这没问题b\n");
     const char *delimiter_end = strcat(strcat("\r\n--", boundary), "--\r\n");
+    printf("到这没问题c\n");
 
+    int daozhemeiwenti = 0;
     char *part = strtok(byteList.bytes, delimiter_start);
     while (part) {
+        printf("到这没问题%d\n", daozhemeiwenti++);
         if (strstr(part, "Content-Type: text/plain; charset=UTF-8")) {
             part = strtok(NULL, "\r\n\r\n");  // Move to the content part
             printf("%s", part);  // Output the plain text content
