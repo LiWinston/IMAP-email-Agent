@@ -237,8 +237,8 @@ static int find_boundary(const char *content_type, char *boundary) {
         }
         boundary[i] = '\0';  // Null terminate the string
     }
-    printf("Find Boundary: %s\n", boundary);
-    printf("at %s\n", start);
+//    printf("Find Boundary: %s\n", boundary);
+//    printf("at %s\n", start);
     return 1;
 }
 
@@ -271,12 +271,12 @@ static int mime() {
 
     char delimiter_end[300]; // 根据实际情况调整大小
     snprintf(delimiter_end, sizeof(delimiter_end), "\r\n--%s--\r\n", boundary);
-    printf("到这没问题c\n");
+    printf("delimiter_start: %s\n", delimiter_start);
+    printf("delimiter_end: %s\n", delimiter_end);
 
-    int daozhemeiwenti = 0;
     char *part = strtok(byteList.bytes, delimiter_start);
     while (part) {
-        printf("到这没问题%d\n", daozhemeiwenti++);
+        printf("part: %s\n", part);
         if (strstr(part, "Content-Type: text/plain; charset=UTF-8")) {
             part = strtok(NULL, "\r\n\r\n");  // Move to the content part
             if (part) printf("%s", part);  // Output the plain text content
