@@ -214,7 +214,7 @@ Content-Transfer-Encoding: quoted-printable
 
  */
 
-static int find_boundary(const char *content_type, char *boundary) {
+int find_boundary(const char *content_type, char *boundary) {
     const char *prefix = "boundary=";
     const char *start = strstr(content_type, prefix);
     if (!start) return 0;  // Boundary not found
@@ -237,57 +237,76 @@ static int find_boundary(const char *content_type, char *boundary) {
         }
         boundary[i] = '\0';  // Null terminate the string
     }
-//    printf("Find Boundary: %s\n", boundary);
-//    printf("at %s\n", start);
     return 1;
 }
 
 static int mime() {
     char msg[1024];
-    sprintf(msg, "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
+    snprintf(msg, sizeof(msg), "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
     HANDLE_ERR(n_send(msg));
     HANDLE_ERR(n_readLine());
 
     // Extract body length from server response
-
     int messageNum, bodyLen;
-    if(sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum, &bodyLen)!=2){
+    if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum, &bodyLen) != 2) {
         printf("Message not found\n");
         return 3;
     }
 
     HANDLE_ERR(n_readBytes(bodyLen));
-
+    unfold(byteList.bytes);
     char boundary[256];
     if (!find_boundary(byteList.bytes, boundary)) {
-        printf("MIME boundary not found\n");
+        perror("MIME boundary not found\n");
         return 4;  // Exit with error if boundary not found
     }
 
-    printf("到这没问题a\n");
+//    printf("Boundary found: %s\n", boundary);
 
     char delimiter_start[300]; // 根据实际情况调整大小
-    snprintf(delimiter_start, sizeof(delimiter_start), "\r\n--%s\r\n", boundary);
+    snprintf(delimiter_start, sizeof(delimiter_start), "--%s", boundary);
 
     char delimiter_end[300]; // 根据实际情况调整大小
-    snprintf(delimiter_end, sizeof(delimiter_end), "\r\n--%s--\r\n", boundary);
-    printf("delimiter_start: %s\n", delimiter_start);
-    printf("delimiter_end: %s\n", delimiter_end);
+    snprintf(delimiter_end, sizeof(delimiter_end), "--%s--", boundary);
 
-    char *part = strtok(byteList.bytes, delimiter_start);
-    while (part) {
-        printf("part: %s\n", part);
-        if (strstr(part, "Content-Type: text/plain; charset=UTF-8")) {
-            part = strtok(NULL, "\r\n\r\n");  // Move to the content part
-            if (part) printf("%s", part);  // Output the plain text content
-            return 0;  // Success
+    // 解析 MIME 部分
+    char *part_start = strstr(byteList.bytes, delimiter_start);
+    if (!part_start) {
+        perror("No MIME parts found\n");
+        return 4;
+    }
+    part_start += strlen(delimiter_start);
+
+    while (part_start) {
+        // 找到下一个部分的结束
+        char *part_end = strstr(part_start, delimiter_start);
+        if (!part_end) {
+            part_end = strstr(part_start, delimiter_end);
+            if (!part_end) {
+                perror("Invalid MIME structure\n");
+                return 4;
+            }
         }
-        part = strtok(NULL, delimiter_start);
-        if (part && strncmp(part, delimiter_end, strlen(delimiter_end)) == 0) break;  // End of MIME parts
+
+        // 临时结束当前部分
+        *part_end = '\0';
+
+        // 检查是否为 text/plain
+        if (strstr(part_start, "Content-Type: text/plain; charset=UTF-8")) {
+            char *content_start = strstr(part_start, "\r\n\r\n");
+            if (content_start) {
+                content_start += 4; // 跳过 "\r\n\r\n"
+                printf("%s", content_start);  // 输出纯文本内容
+                return 0;  // 成功
+            }
+        }
+
+        // 移动到下一个部分
+        part_start = part_end + strlen(delimiter_start);
     }
 
-    printf("UTF-8 text/plain part not found\n");
-    return 4;  // If no suitable part found, return with error
+    perror("UTF-8 text/plain part not found\n");
+    return 4;  // 未找到合适的部分，返回错误
 }
 
 static int list() {
