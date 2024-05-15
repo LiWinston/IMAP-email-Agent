@@ -38,7 +38,8 @@ static void unfold(char *s) {
     int n = strlen(s);
     int j = 0;
     for (int i = 0; i < n; i++, j++) {
-        if (i < n - 2 && s[i] == '\r' && s[i + 1] == '\n' && (s[i + 2] == ' ' || s[i + 2] == '\t')) {
+        if (i < n - 2 && s[i] == '\r' && s[i + 1] == '\n' &&
+            (s[i + 2] == ' ' || s[i + 2] == '\t')) {
             i += 2;
         }
         s[j] = s[i];
@@ -82,7 +83,7 @@ static int selectFolder() {
     while (true) {
         HANDLE_ERR(n_readLine())
         toUpper(byteList.bytes);
-        if (arg.messageNum == 0 &&
+        if (arg.messageNum == -1 &&
             sscanf(byteList.bytes, "* %d EXISTS\r\n", &maxMessageNum) == 1) {
             arg.messageNum = maxMessageNum;
         }

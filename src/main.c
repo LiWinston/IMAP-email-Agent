@@ -1,10 +1,10 @@
 #include "emailClient.h"
 
+#include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #define PRINT_USAGE                                                            \
     fprintf(stderr,                                                            \
@@ -22,7 +22,7 @@ static int only_digits(const char *str) {
 }
 
 int main(int argc, char *argv[]) {
-    arg = (Arguments){NULL, NULL, NULL, 0, NULL, NULL, false};
+    arg = (Arguments){NULL, NULL, NULL, -1, NULL, NULL, false};
 
     if (argc < 7) {
         PRINT_USAGE
