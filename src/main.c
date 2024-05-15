@@ -4,11 +4,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define PRINT_USAGE                                                            \
     fprintf(stderr,                                                            \
             "Usage: fetchmail -u <username> -p <password> [-f <folder>] [-n "  \
             "<messageNum>] [-t] <command> <server_name>\n");
+
+static int only_digits(const char *str) {
+    while (*str) {
+        if (!isdigit((unsigned char)*str)) {
+            return -1;
+        }
+        str++;
+    }
+    return 0;
+}
 
 int main(int argc, char *argv[]) {
     arg = (Arguments){NULL, NULL, NULL, 0, NULL, NULL, false};
@@ -26,6 +37,10 @@ int main(int argc, char *argv[]) {
         } else if (strcmp(argv[i], "-f") == 0 && i < argc - 1) {
             arg.folder = argv[++i];
         } else if (strcmp(argv[i], "-n") == 0 && i < argc - 1) {
+            if (only_digits(argv[i + 1]) < 0) {
+                PRINT_USAGE
+                return 1;
+            }
             arg.messageNum = atoi(argv[++i]);
         } else if (strcmp(argv[i], "-t") == 0) {
             arg.tls_flag = true;
@@ -35,6 +50,7 @@ int main(int argc, char *argv[]) {
             arg.server_name = argv[i];
         } else {
             PRINT_USAGE
+            return 1;
         }
     }
 
