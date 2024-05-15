@@ -199,112 +199,38 @@ static int parse() {
     return 0;
 }
 
-/* boundary="--==_mimepart_6626f64b5ee67_2ddfc4b1492049"; l48 in ret-mst
- * l56 :
-----==_mimepart_6626f64b5ee67_2ddfc4b1492049
-Content-Type: text/plain;
- charset=UTF-8
-Content-Transfer-Encoding: quoted-printable
-
- */
-
-int find_boundary(const char *content_type, char *boundary) {
-    const char *prefix = "boundary=";
-    const char *start = strstr(content_type, prefix);
-    if (!start)
-        return 0; // Boundary not found
-
-    start += strlen(prefix);
-    if (*start == '"') {
-        start++; // Skip the opening quote if present
-        size_t i = 0;
-        while (start[i] && start[i] != '"') {
-            boundary[i] = start[i];
-            i++;
-        }
-        boundary[i] = '\0'; // Null terminate the string
-    } else {
-        // Copy up to the next semicolon or end of string
-        int i = 0;
-        while (start[i] && start[i] != ';' && start[i] != '\r' &&
-               start[i] != '\n') {
-            boundary[i] = start[i];
-            i++;
-        }
-        boundary[i] = '\0'; // Null terminate the string
-    }
-    return 1;
-}
-
+// sprintf(msg, "A%d FETCH %d BODY\r\n", ++tagNum, arg.messageNum);
+// This is just a placeholder, and shoud parse content of the respond of fetch BODY and find the first UTF-8 text/plain body.
 static int mime() {
     char msg[1024];
-    snprintf(msg, sizeof(msg), "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum,
-             arg.messageNum);
-    HANDLE_ERR(n_send(msg));
-    HANDLE_ERR(n_readLine());
+    sprintf(msg, "A%d FETCH %d BODY.PEEK[1]\r\n", ++tagNum, arg.messageNum);
 
-    // Extract body length from server response
-    int messageNum, bodyLen;
-    if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum,
-               &bodyLen) != 2) {
+    HANDLE_ERR(n_send(msg))
+
+    // Answer format: * messageNum FETCH (BODY[] {bodyLength}body)
+    HANDLE_ERR(n_readLine())
+    toUpper(byteList.bytes);
+
+    int messageNum, bodyLength;
+    if (sscanf(byteList.bytes, "* %d FETCH (BODY[1] {%d}\r\n", &messageNum,
+               &bodyLength) != 2) {
         printf("Message not found\n");
         return 3;
     }
-
-    HANDLE_ERR(n_readBytes(bodyLen));
-    unfold(byteList.bytes);
-    char boundary[256];
-    if (!find_boundary(byteList.bytes, boundary)) {
-        perror("MIME boundary not found\n");
-        return 4; // Exit with error if boundary not found
+    HANDLE_ERR(n_readBytes(bodyLength))
+    // Print body
+    printf("%s", byteList.bytes);
+    // Read )/r/n
+    HANDLE_ERR(n_readLine())
+    // Read last line
+    HANDLE_ERR(n_readLine())
+    // This error may not specific in paper
+    sprintf(msg, "A%d OK ", tagNum);
+    if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
+        printf("Message not found\n");
+        return 3;
     }
-
-    //    printf("Boundary found: %s\n", boundary);
-
-    char delimiter_start[300]; // 根据实际情况调整大小
-    snprintf(delimiter_start, sizeof(delimiter_start), "--%s", boundary);
-
-    char delimiter_end[300]; // 根据实际情况调整大小
-    snprintf(delimiter_end, sizeof(delimiter_end), "--%s--", boundary);
-
-    // 解析 MIME 部分
-    char *part_start = strstr(byteList.bytes, delimiter_start);
-    if (!part_start) {
-        perror("No MIME parts found\n");
-        return 4;
-    }
-    part_start += strlen(delimiter_start);
-
-    while (part_start) {
-        // 找到下一个部分的结束
-        char *part_end = strstr(part_start, delimiter_start);
-        if (!part_end) {
-            part_end = strstr(part_start, delimiter_end);
-            if (!part_end) {
-                perror("Invalid MIME structure\n");
-                return 4;
-            }
-        }
-
-        // 临时结束当前部分
-        *part_end = '\0';
-
-        // 检查是否为 text/plain
-        if (strstr(part_start, "Content-Type: text/plain; charset=UTF-8")) {
-            char *content_start = strstr(part_start, "\r\n\r\n");
-            if (content_start) {
-                content_start += 4;          // 跳过 "\r\n\r\n"
-                printf("%s", content_start); // 输出纯文本内容
-                return 0;                    // 成功
-            }
-        }
-
-        // 移动到下一个部分
-        part_start = part_end + strlen(delimiter_start);
-    }
-
-    perror("UTF-8 text/plain part not found\n");
-    return 4; // 未找到合适的部分，返回错误
+    return 0;
 }
 
 static int list() {
