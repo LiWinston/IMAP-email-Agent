@@ -83,7 +83,7 @@ static int selectFolder() {
     while (true) {
         HANDLE_ERR(n_readLine())
         toUpper(byteList.bytes);
-        if (arg.messageNum == -1 &&
+        if (arg.messageNum == -1000000007 &&
             sscanf(byteList.bytes, "* %d EXISTS\r\n", &maxMessageNum) == 1) {
             arg.messageNum = maxMessageNum;
         }
@@ -211,38 +211,42 @@ Content-Transfer-Encoding: quoted-printable
 int find_boundary(const char *content_type, char *boundary) {
     const char *prefix = "boundary=";
     const char *start = strstr(content_type, prefix);
-    if (!start) return 0;  // Boundary not found
+    if (!start)
+        return 0; // Boundary not found
 
     start += strlen(prefix);
     if (*start == '"') {
-        start++;  // Skip the opening quote if present
+        start++; // Skip the opening quote if present
         size_t i = 0;
         while (start[i] && start[i] != '"') {
             boundary[i] = start[i];
             i++;
         }
-        boundary[i] = '\0';  // Null terminate the string
+        boundary[i] = '\0'; // Null terminate the string
     } else {
         // Copy up to the next semicolon or end of string
         int i = 0;
-        while (start[i] && start[i] != ';' && start[i] != '\r' && start[i] != '\n') {
+        while (start[i] && start[i] != ';' && start[i] != '\r' &&
+               start[i] != '\n') {
             boundary[i] = start[i];
             i++;
         }
-        boundary[i] = '\0';  // Null terminate the string
+        boundary[i] = '\0'; // Null terminate the string
     }
     return 1;
 }
 
 static int mime() {
     char msg[1024];
-    snprintf(msg, sizeof(msg), "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum, arg.messageNum);
+    snprintf(msg, sizeof(msg), "A%d FETCH %d BODY.PEEK[]\r\n", ++tagNum,
+             arg.messageNum);
     HANDLE_ERR(n_send(msg));
     HANDLE_ERR(n_readLine());
 
     // Extract body length from server response
     int messageNum, bodyLen;
-    if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum, &bodyLen) != 2) {
+    if (sscanf(byteList.bytes, "* %d FETCH (BODY[] {%d}\r\n", &messageNum,
+               &bodyLen) != 2) {
         printf("Message not found\n");
         return 3;
     }
@@ -252,10 +256,10 @@ static int mime() {
     char boundary[256];
     if (!find_boundary(byteList.bytes, boundary)) {
         perror("MIME boundary not found\n");
-        return 4;  // Exit with error if boundary not found
+        return 4; // Exit with error if boundary not found
     }
 
-//    printf("Boundary found: %s\n", boundary);
+    //    printf("Boundary found: %s\n", boundary);
 
     char delimiter_start[300]; // 根据实际情况调整大小
     snprintf(delimiter_start, sizeof(delimiter_start), "--%s", boundary);
@@ -289,9 +293,9 @@ static int mime() {
         if (strstr(part_start, "Content-Type: text/plain; charset=UTF-8")) {
             char *content_start = strstr(part_start, "\r\n\r\n");
             if (content_start) {
-                content_start += 4; // 跳过 "\r\n\r\n"
-                printf("%s", content_start);  // 输出纯文本内容
-                return 0;  // 成功
+                content_start += 4;          // 跳过 "\r\n\r\n"
+                printf("%s", content_start); // 输出纯文本内容
+                return 0;                    // 成功
             }
         }
 
@@ -300,7 +304,7 @@ static int mime() {
     }
 
     perror("UTF-8 text/plain part not found\n");
-    return 4;  // 未找到合适的部分，返回错误
+    return 4; // 未找到合适的部分，返回错误
 }
 
 static int list() {
@@ -354,7 +358,7 @@ static int list() {
 int c_run() {
     tagNum = 0;
 
-    HANDLE_ERR(n_connect(arg.server_name, arg.tls_flag))
+    HANDLE_ERR(n_connect(arg.server_name, arg.tls_flag));
 
     HANDLE_ERR(login())
 

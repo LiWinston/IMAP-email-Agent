@@ -22,7 +22,7 @@ static int only_digits(const char *str) {
 }
 
 int main(int argc, char *argv[]) {
-    arg = (Arguments){NULL, NULL, NULL, -1, NULL, NULL, false};
+    arg = (Arguments){NULL, NULL, NULL, -1000000007, NULL, NULL, false};
 
     if (argc < 7) {
         PRINT_USAGE

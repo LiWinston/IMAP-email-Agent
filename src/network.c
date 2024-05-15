@@ -138,7 +138,7 @@ int n_connect(char *server_name, bool tls) {
     // Resolve server ip
     if (getaddrinfo(server_name, NULL, &hints, &res) != 0) {
         fprintf(stderr, "Cannot resolve hostname %s\n", server_name);
-        return 3;
+        return 1;
     }
 
     // Create socket
