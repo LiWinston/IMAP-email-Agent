@@ -38,7 +38,7 @@ static void unfold(char *s) {
     int n = strlen(s);
     int j = 0;
     for (int i = 0; i < n; i++, j++) {
-        if (i < n - 2 && s[i] == '\r' && s[i + 1] == '\n' && s[i + 2] == ' ') {
+        if (i < n - 2 && s[i] == '\r' && s[i + 1] == '\n' && (s[i + 2] == ' ' || s[i + 2] == '\t')) {
             i += 2;
         }
         s[j] = s[i];
@@ -179,14 +179,7 @@ static int parse() {
                 HANDLE_ERR(n_readLine())
                 continue;
             } else {
-                // Tmp fix, will remove after ci fix:
-                // https://edstem.org/au/courses/15616/discussion/1944410
-
                 byteList.bytes[i] = '\0';
-                while (byteList.bytes[--i] == ' ') {
-                    byteList.bytes[i] = '\0';
-                    i--;
-                }
             }
 
             printf("%s: %s\n", headers[hd],
