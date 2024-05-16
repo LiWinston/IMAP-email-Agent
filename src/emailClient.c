@@ -7,24 +7,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define CHECK_OK(__msg)                                                               \
+    sprintf(msg, "A%d OK ", tagNum);                                           \
+    if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {                  \
+        printf(__msg);                                             \
+        return 3;                                                              \
+    }
+
 Arguments arg;
 
 static int tagNum;
-
-// Case-insensitive version of strstr
-__attribute__((unused)) static char *
-strstr_case_insensitive(char *haystack, const char *needle);
-static char *strstr_case_insensitive(char *haystack, const char *needle) {
-    size_t needle_len = strlen(needle);
-    while (*haystack) {
-        if (strncasecmp(haystack, needle, needle_len) == 0) {
-            return haystack;
-        }
-        haystack++;
-    }
-
-    return NULL;
-}
 
 // Convert string to upper case
 static void toUpper(char *str) {
@@ -61,11 +53,7 @@ static int login() {
         }
     }
 
-    sprintf(msg, "A%d OK ", tagNum);
-    if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
-        printf("Login failure\n");
-        return 3;
-    }
+    CHECK_OK("Login failure\n")
 
     return 0;
 }
@@ -93,11 +81,7 @@ static int selectFolder() {
         }
     }
 
-    sprintf(msg, "A%d OK ", tagNum);
-    if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
-        printf("Folder not found\n");
-        return 3;
-    }
+    CHECK_OK("Folder not found\n")
 
     return 0;
 }
@@ -125,12 +109,7 @@ static int retrieve() {
     HANDLE_ERR(n_readLine())
     // Read last line
     HANDLE_ERR(n_readLine())
-    // This error may not specific in paper
-    sprintf(msg, "A%d OK ", tagNum);
-    if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
-        printf("Message not found\n");
-        return 3;
-    }
+    CHECK_OK("Message not found\n")
     return 0;
 }
 
@@ -189,21 +168,81 @@ static int parse() {
             HANDLE_ERR(n_readLine())
         }
 
-        sprintf(msg, "A%d OK ", tagNum);
-        if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
-            printf("Message not found\n");
-            return 3;
-        }
+        CHECK_OK("Message not found\n")
     }
 
     return 0;
 }
 
 // sprintf(msg, "A%d FETCH %d BODY\r\n", ++tagNum, arg.messageNum);
-// This is just a placeholder, and shoud parse content of the respond of fetch BODY and find the first UTF-8 text/plain body.
+// This is just a placeholder, and shoud parse content of the respond of fetch
+// BODY and find the first UTF-8 text/plain body.
 static int mime() {
     char msg[1024];
-    sprintf(msg, "A%d FETCH %d BODY.PEEK[1]\r\n", ++tagNum, arg.messageNum);
+    sprintf(msg, "A%d FETCH %d BODY\r\n", ++tagNum, arg.messageNum);
+
+    HANDLE_ERR(n_send(msg))
+
+    int body_part = -1, cur = 0, qc = 0, messageNum;
+    HANDLE_ERR(n_readLine())
+    toUpper(byteList.bytes);
+    if (sscanf(byteList.bytes, "* %d FETCH (BODY", &messageNum) != 1) {
+        printf("%s", "Message not found\n");
+        return 3;
+    }
+    char *requirement[6] = {"TEXT", "PLAIN", "UTF-8", "QUOTED-PRINTABLE",
+                            "7BIT", "8BIT"};
+    // Parse body structure
+    char mate_data[10 * 1024];
+    int md_c = 0;
+    for (int part = 1; byteList.bytes[cur] || qc; cur++) {
+        if (byteList.bytes[cur] == '\0') {
+            HANDLE_ERR(n_readLine())
+            toUpper(byteList.bytes);
+            cur = 0;
+            continue;
+        }
+        if (qc >= 3) {
+            mate_data[md_c] = byteList.bytes[cur];
+            md_c++;
+        }
+        if (byteList.bytes[cur] == '(') {
+            qc++;
+        } else if (byteList.bytes[cur] == ')') {
+            qc--;
+            if (qc == 2) {
+                mate_data[md_c] = '\0';
+                // Match the requirement
+                bool ok1 = true, ok2 = false;
+                for (int i = 0; i < 3; i++) {
+                    if (strstr(mate_data, requirement[i]) == NULL) {
+                        ok1 = false;
+                    }
+                }
+                for (int i = 3; i < 6; i++) {
+                    if (strstr(mate_data, requirement[i]) != NULL) {
+                        ok2 = true;
+                    }
+                }
+                if (ok2 && ok1) {
+                    body_part = part;
+                    break;
+                }
+                part++;
+                md_c = 0;
+            }
+        }
+    }
+    if (body_part == -1) {
+        printf("%s", "mime error: can not find mime that fit requirement");
+        return 4;
+    }
+    HANDLE_ERR(n_readLine())
+    toUpper(byteList.bytes);
+    CHECK_OK("Message not found\n")
+
+    sprintf(msg, "A%d FETCH %d BODY.PEEK[%d]\r\n", ++tagNum, arg.messageNum,
+            body_part);
 
     HANDLE_ERR(n_send(msg))
 
@@ -211,9 +250,9 @@ static int mime() {
     HANDLE_ERR(n_readLine())
     toUpper(byteList.bytes);
 
-    int messageNum, bodyLength;
-    if (sscanf(byteList.bytes, "* %d FETCH (BODY[1] {%d}\r\n", &messageNum,
-               &bodyLength) != 2) {
+    int bodyLength;
+    if (sscanf(byteList.bytes, "* %d FETCH (BODY[%d] {%d}\r\n", &messageNum,
+               &body_part, &bodyLength) != 3) {
         printf("Message not found\n");
         return 3;
     }
@@ -225,11 +264,7 @@ static int mime() {
     // Read last line
     HANDLE_ERR(n_readLine())
     // This error may not specific in paper
-    sprintf(msg, "A%d OK ", tagNum);
-    if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {
-        printf("Message not found\n");
-        return 3;
-    }
+    CHECK_OK("Message not found\n")
     return 0;
 }
 
