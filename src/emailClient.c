@@ -7,10 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define CHECK_OK(__msg)                                                               \
+#define CHECK_OK(__msg)                                                        \
     sprintf(msg, "A%d OK ", tagNum);                                           \
     if (strncasecmp(byteList.bytes, msg, strlen(msg)) != 0) {                  \
-        printf(__msg);                                             \
+        printf(__msg);                                                         \
         return 3;                                                              \
     }
 

@@ -14,7 +14,7 @@
     {                                                                          \
         int err__ = (expr);                                                    \
         if (err__ != 0) {                                                      \
-            printf(msg);                                                 \
+            printf(msg);                                                       \
             return err__;                                                      \
         }                                                                      \
     }
